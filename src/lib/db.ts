@@ -111,12 +111,15 @@ async function createPgliteSql(): Promise<Sql> {
   // data survives source edits (it resets on dev-server restart).
   globalRef.__pgliteInstance__ ??= (async () => {
     const { PGlite } = await import("@electric-sql/pglite");
+    const { pgliteWasmOptions } = await import("./pglite-sidecars");
+    const sidecars = await pgliteWasmOptions();
     const pg = new PGlite({
       parsers: {
         [OID_INT8]: Number,
         [OID_DATE]: identity,
         [OID_INTERVAL]: identity,
       },
+      ...sidecars,
     });
     await pg.waitReady;
     await pg.exec(
