@@ -64,6 +64,8 @@ export default async function grokPwaMiddleware(
   event: GrokPwaEvent,
   next: () => unknown | Promise<unknown>,
 ): Promise<unknown> {
+  if (process.env.NETLIFY) return next();
+
   const method = (event.req.method ?? "GET").toUpperCase();
   if (method !== "GET") return next();
 

@@ -1,4 +1,5 @@
 import { createRootRoute, HeadContent, Outlet, Scripts } from "@tanstack/react-router";
+import { Toaster } from "sonner";
 import { AuthProvider } from "@/lib/auth/provider";
 import { PreviewHostBridge } from "@/components/preview-host-bridge";
 import { APP_NAME, ORG_SHORT, SITE_FULL, SITE_SHORT } from "@/lib/report/paper";
@@ -14,13 +15,11 @@ export const Route = createRootRoute({
         name: "description",
         content: `${APP_NAME} — ${ORG_SHORT}, ${SITE_FULL}. Relatório diário do coordenador de enfermagem, um separador por dia e Excel mensal.`,
       },
-      { name: "theme-color", content: "#1e4d47" },
+      { name: "theme-color", content: "#007a33" },
     ],
     links: [
       { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
       { rel: "stylesheet", href: appCss },
-      { rel: "manifest", href: "/__grok/manifest.webmanifest" },
-      { rel: "apple-touch-icon", href: "/__grok/icon-180.png" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       {
         rel: "preconnect",
@@ -43,6 +42,16 @@ export const Route = createRootRoute({
         <AuthProvider>
           <Outlet />
         </AuthProvider>
+        <Toaster
+          position="top-right"
+          offset={24}
+          className="no-print"
+          toastOptions={{
+            classNames: {
+              toast: "bg-surface text-ink border border-border font-sans",
+            },
+          }}
+        />
         <Scripts />
       </body>
     </html>

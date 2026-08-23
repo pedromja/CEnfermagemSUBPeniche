@@ -8,3 +8,9 @@
 [functions]
   directory = ".netlify/functions-internal"
   node_bundler = "none"
+
+# Platform install assets are not part of the published site.
+[[redirects]]
+  from = "/__grok/*"
+  to = "/favicon.svg"
+  status = 404

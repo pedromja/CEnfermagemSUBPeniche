@@ -1,14 +1,26 @@
 import { useEffect } from "react";
-import { createFileRoute } from "@tanstack/react-router";
-import { Toaster } from "sonner";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { AppHeader } from "@/components/app-header";
 import { DaySheet } from "@/components/day-sheet";
 import { MonthOverview } from "@/components/month-overview";
 import { PrintMonth } from "@/components/print-month";
 import { SheetTabs } from "@/components/sheet-tabs";
 import { useReportStore } from "@/lib/report/store";
+import { getAccessState } from "@/lib/access/functions";
 
-export const Route = createFileRoute("/")({ component: Home });
+export const Route = createFileRoute("/")({
+  beforeLoad: async () => {
+    const access = await getAccessState();
+    if (access.setupNeeded) throw redirect({ to: "/login" });
+    if (!access.granted) {
+      throw redirect({
+        to: access.reason === "setup" ? "/login" : "/acesso-negado",
+      });
+    }
+    return { access };
+  },
+  component: Home,
+});
 
 function Home() {
   const sheet = useReportStore((s) => s.sheet);
@@ -25,16 +37,6 @@ function Home() {
       </main>
       <SheetTabs />
       <PrintMonth />
-      <Toaster
-        position="top-right"
-        offset={108}
-        className="no-print"
-        toastOptions={{
-          classNames: {
-            toast: "bg-surface text-ink border border-border font-sans",
-          },
-        }}
-      />
     </div>
   );
 }

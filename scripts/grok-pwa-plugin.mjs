@@ -166,6 +166,7 @@ export function grokPwaPlugin() {
       return `export const grokOgIdentity = ${JSON.stringify(snapshotOgIdentity(root))};`;
     },
     transformIndexHtml(html) {
+      if (process.env.NETLIFY) return html;
       return injectGrokPwaHead(html, {
         host: process.env.VITE_PUBLIC_HOSTNAME ?? "",
         cwd: root,

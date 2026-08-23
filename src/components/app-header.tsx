@@ -1,17 +1,16 @@
-import { ChevronLeft, ChevronRight, Download, Printer, RotateCcw } from "lucide-react";
+import { ChevronLeft, ChevronRight, Download, Printer, RotateCcw, Shield } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useMonthDays, useReportStore, monthKey } from "@/lib/report/store";
 import { MONTH_NAMES } from "@/lib/report/types";
 import { downloadMonthExcel, monthFileName } from "@/lib/report/excel";
+import { Link } from "@tanstack/react-router";
+import { UserButton } from "@/lib/auth/gates";
+import { useCurrentUserState } from "@/lib/auth/use-current-user";
+import { OrgBanner } from "@/components/org-banner";
 import {
   APP_HEADLINE,
   APP_NAME,
-  ORG_LOGO,
-  ORG_LOGO_ALT,
-  SITE_FULL,
-  SITE_PHOTO_ALT,
-  SITE_PHOTO_CARD,
   SITE_SHORT,
 } from "@/lib/report/paper";
 
@@ -21,6 +20,7 @@ export function AppHeader() {
   const setMonth = useReportStore((s) => s.setMonth);
   const restoreAgosto = useReportStore((s) => s.restoreAgosto);
   const days = useMonthDays();
+  const { user, isPending } = useCurrentUserState();
 
   const prev = () => {
     if (month === 1) setMonth(year - 1, 12);
@@ -45,28 +45,7 @@ export function AppHeader() {
 
   return (
     <header className="no-print shrink-0 border-b border-line bg-surface">
-      <div className="border-b border-line bg-surface">
-        <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-2 sm:px-6 lg:gap-5 lg:px-8 lg:py-2.5">
-          <img
-            src={ORG_LOGO}
-            alt={ORG_LOGO_ALT}
-            className="h-11 w-auto max-w-[11.5rem] shrink-0 object-contain object-left sm:h-14 sm:max-w-[16rem] lg:h-16 lg:max-w-[20rem]"
-          />
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold leading-tight text-accent">
-              {SITE_SHORT}
-            </p>
-            <p className="hidden truncate text-xs text-muted sm:block">
-              {SITE_FULL}
-            </p>
-          </div>
-          <img
-            src={SITE_PHOTO_CARD}
-            alt={SITE_PHOTO_ALT}
-            className="site-photo hidden h-12 w-[4.75rem] shrink-0 rounded-md object-cover object-[42%_62%] sm:block lg:h-14 lg:w-24"
-          />
-        </div>
-      </div>
+      <OrgBanner photo />
 
       <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-2.5 sm:px-6 lg:flex-row lg:items-center lg:gap-4 lg:px-8">
         <div className="flex min-w-0 flex-1 items-center gap-3">
@@ -128,6 +107,18 @@ export function AppHeader() {
             <span className="hidden sm:inline">Excel do mês</span>
             <span className="sm:hidden">Excel</span>
           </Button>
+          {isPending ? (
+            <span className="size-10 shrink-0 rounded-md bg-sunken" />
+          ) : user ? (
+            <UserButton />
+          ) : (
+            <Button variant="ghost" size="sm" asChild>
+              <Link to="/login">
+                <Shield />
+                <span className="hidden sm:inline">Admin</span>
+              </Link>
+            </Button>
+          )}
         </div>
       </div>
     </header>

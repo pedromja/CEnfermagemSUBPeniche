@@ -4,16 +4,16 @@ Relatório diário do coordenador de enfermagem: um separador por dia, Excel men
 
 ## Publicar na Netlify
 
-1. Abrir [app.netlify.com](https://app.netlify.com) (conta já criada).
+1. Abrir [app.netlify.com](https://app.netlify.com).
 2. **Add new site → Import an existing project → GitHub**.
-3. Escolher o repositório `pedromja/relatorio-ce-sub-peniche`.
+3. Ligar o repositório deste projecto (criar um repositório vazio se ainda não existir e enviar o código).
 4. Confirmar:
    - **Build command:** `npm run build`
    - **Publish directory:** `dist`
    - **Node:** `22`
-5. Deploy. O endereço fica `https://….netlify.app` (pode mudar o nome do site em Site configuration → Domain management).
+5. O endereço fica `https://….netlify.app`. Pode alterar o nome do site ou ligar um domínio em **Domain management**.
 
-Atalho: [Deploy to Netlify](https://app.netlify.com/start/deploy?repository=https://github.com/pedromja/relatorio-ce-sub-peniche)
+Na Netlify, defina também `DATABASE_URL` (Postgres) para a conta de administrador e o registo de acções persistirem.
 
 ## Local
 
@@ -21,5 +21,3 @@ Atalho: [Deploy to Netlify](https://app.netlify.com/start/deploy?repository=http
 npm install
 npm run dev
 ```
-
-Abre em `http://localhost:8080`.

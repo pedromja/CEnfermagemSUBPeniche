@@ -1,8 +1,9 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { DayReport, SheetId, ShiftId, ShiftReport, StaffMember } from "./types";
-import { STAFF_SEED } from "./types";
-import { emptyDay, isoDate, mergeStaff } from "./model";
+import { SHIFT_LABEL, STAFF_SEED } from "./types";
+import { emptyDay, isoDate, mergeStaff, dayStatus } from "./model";
+import { logDayDeleted, logFilledDayEdit } from "@/lib/audit/client";
 import { AGOSTO_2026 } from "./seed-agosto";
 
 const STORAGE_KEY = "relatorio-ce-v1";
@@ -84,16 +85,20 @@ export const useReportStore = create<ReportState>()(
         return ensureDay(months, d);
       },
       patchShift: (date, shift, patch) => {
+        const current = ensureDay(get().months, date);
+        const wasFilled = dayStatus(current) !== "empty";
         set((state) => {
-          const current = ensureDay(state.months, date);
-          const nextShift = { ...current[shift], ...patch };
+          const day = ensureDay(state.months, date);
           return {
             months: writeDay(state.months, date, {
-              ...current,
-              [shift]: nextShift,
+              ...day,
+              [shift]: { ...day[shift], ...patch },
             }),
           };
         });
+        if (wasFilled) {
+          logFilledDayEdit(date, `Edição do turno da ${SHIFT_LABEL[shift].toLowerCase()}`);
+        }
       },
       patchOcorrencia: (date, shift, text) => {
         const field =
@@ -102,17 +107,27 @@ export const useReportStore = create<ReportState>()(
             : shift === "manha"
               ? "ocorrenciasManha"
               : "ocorrenciasTarde";
+        const current = ensureDay(get().months, date);
+        const wasFilled = dayStatus(current) !== "empty";
         set((state) => {
-          const current = ensureDay(state.months, date);
+          const day = ensureDay(state.months, date);
           return {
             months: writeDay(state.months, date, {
-              ...current,
+              ...day,
               [field]: text,
             }),
           };
         });
+        if (wasFilled) {
+          logFilledDayEdit(
+            date,
+            `Edição das ocorrências (${SHIFT_LABEL[shift].toLowerCase()})`,
+          );
+        }
       },
       resetDay: (date) => {
+        const current = ensureDay(get().months, date);
+        const wasFilled = dayStatus(current) !== "empty";
         set((state) => {
           const [y, m] = date.split("-");
           const key = `${y}-${m}`;
@@ -120,8 +135,12 @@ export const useReportStore = create<ReportState>()(
           delete bucket[date];
           return { months: { ...state.months, [key]: bucket } };
         });
+        if (wasFilled) {
+          logDayDeleted(date, "Registo diário apagado");
+        }
       },
       restoreAgosto: () => {
+        logDayDeleted("2026-08", "Mês de Agosto 2026 substituído (repor documento)");
         set((state) => ({
           year: 2026,
           month: 8,
