@@ -60,11 +60,17 @@ function injectHeadStreaming(response: Response, host: string): Response {
   });
 }
 
+function skipPlatformChrome(event: GrokPwaEvent): boolean {
+  if (process.env.NETLIFY || process.env.SITE_ID) return true;
+  const host = `${requestHost(event)} ${process.env.URL ?? ""} ${process.env.DEPLOY_PRIME_URL ?? ""}`;
+  return /netlify\.app/i.test(host);
+}
+
 export default async function grokPwaMiddleware(
   event: GrokPwaEvent,
   next: () => unknown | Promise<unknown>,
 ): Promise<unknown> {
-  if (process.env.NETLIFY) return next();
+  if (skipPlatformChrome(event)) return next();
 
   const method = (event.req.method ?? "GET").toUpperCase();
   if (method !== "GET") return next();

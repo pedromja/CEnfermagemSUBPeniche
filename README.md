@@ -11,7 +11,7 @@ Relatório diário do coordenador de enfermagem: um separador por dia, Excel men
    - **Build command:** `npm run build`
    - **Publish directory:** `dist`
    - **Node:** `22`
-5. O endereço fica `https://….netlify.app`. Pode alterar o nome do site ou ligar um domínio em **Domain management**.
+5. Site publicado: [cenfermagempeniche.netlify.app](https://cenfermagempeniche.netlify.app)
 
 Na Netlify, defina também `DATABASE_URL` (Postgres) para a conta de administrador e o registo de acções persistirem.
 

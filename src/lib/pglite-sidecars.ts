@@ -2,6 +2,7 @@ import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { PUBLISHED_ORIGIN } from "@/lib/report/paper";
 
 const FILES = ["pglite.wasm", "initdb.wasm", "pglite.data"] as const;
 
@@ -10,6 +11,11 @@ type SidecarOpts = {
   initdbWasmModule: WebAssembly.Module;
   fsBundle: Blob;
 };
+
+function isNetlifyHost(): boolean {
+  const url = `${process.env.URL ?? ""} ${process.env.DEPLOY_PRIME_URL ?? ""} ${process.env.SITE_NAME ?? ""}`;
+  return Boolean(process.env.NETLIFY || process.env.SITE_ID || /netlify/i.test(url));
+}
 
 function candidateDirs(): string[] {
   const dirs: string[] = [];
@@ -39,35 +45,44 @@ async function readSidecarsFromDir(
   return { wasm, initdb, data };
 }
 
+function publicOrigins(): string[] {
+  const origins = [
+    process.env.DEPLOY_PRIME_URL,
+    process.env.URL,
+    process.env.SITE_NAME ? `https://${process.env.SITE_NAME}.netlify.app` : "",
+    PUBLISHED_ORIGIN,
+  ]
+    .map((v) => (v ?? "").trim().replace(/\/$/, ""))
+    .filter((v) => v.startsWith("http"));
+  return [...new Set(origins)];
+}
+
 async function fetchSidecars(): Promise<{
   wasm: Buffer;
   initdb: Buffer;
   data: Buffer;
 } | null> {
-  const base = (
-    process.env.DEPLOY_PRIME_URL ||
-    process.env.URL ||
-    ""
-  ).replace(/\/$/, "");
-  if (!base.startsWith("http")) return null;
-  try {
-    const [wasmRes, initdbRes, dataRes] = await Promise.all(
-      FILES.map((name) => fetch(`${base}/_pglite/${name}`)),
-    );
-    if (![wasmRes, initdbRes, dataRes].every((r) => r.ok)) return null;
-    const [wasm, initdb, data] = await Promise.all([
-      wasmRes.arrayBuffer(),
-      initdbRes.arrayBuffer(),
-      dataRes.arrayBuffer(),
-    ]);
-    return {
-      wasm: Buffer.from(wasm),
-      initdb: Buffer.from(initdb),
-      data: Buffer.from(data),
-    };
-  } catch {
-    return null;
+  for (const base of publicOrigins()) {
+    try {
+      const [wasmRes, initdbRes, dataRes] = await Promise.all(
+        FILES.map((name) => fetch(`${base}/_pglite/${name}`)),
+      );
+      if (![wasmRes, initdbRes, dataRes].every((r) => r.ok)) continue;
+      const [wasm, initdb, data] = await Promise.all([
+        wasmRes.arrayBuffer(),
+        initdbRes.arrayBuffer(),
+        dataRes.arrayBuffer(),
+      ]);
+      return {
+        wasm: Buffer.from(wasm),
+        initdb: Buffer.from(initdb),
+        data: Buffer.from(data),
+      };
+    } catch {
+      /* try next origin */
+    }
   }
+  return null;
 }
 
 export async function pgliteWasmOptions(): Promise<SidecarOpts | undefined> {
@@ -77,7 +92,14 @@ export async function pgliteWasmOptions(): Promise<SidecarOpts | undefined> {
     if (raw) break;
   }
   raw ??= await fetchSidecars();
-  if (!raw) return undefined;
+  if (!raw) {
+    if (isNetlifyHost()) {
+      throw new Error(
+        "PGLite WASM em falta na Netlify. Confirme que o deploy inclui /_pglite/.",
+      );
+    }
+    return undefined;
+  }
 
   const [pgliteWasmModule, initdbWasmModule] = await Promise.all([
     WebAssembly.compile(Uint8Array.from(raw.wasm)),

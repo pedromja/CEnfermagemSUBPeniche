@@ -9,6 +9,7 @@ dist
 screenshots
 attachments
 artifacts
+public/_pglite
 *.log
 .env
 .env.*
