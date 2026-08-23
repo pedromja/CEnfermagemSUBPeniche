@@ -4,12 +4,7 @@ import { GateShell } from "@/components/gate-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MiniField } from "@/components/field-row";
-import {
-  GROK_PROVIDERS,
-  authClient,
-  authEnabled,
-  signIn,
-} from "@/lib/auth/client";
+import { authClient, authEnabled } from "@/lib/auth/client";
 import { getSetupNeeded } from "@/lib/access/functions";
 
 export const Route = createFileRoute("/login")({
@@ -130,23 +125,6 @@ function Login() {
               : "Entrar"}
         </Button>
       </form>
-
-      {authEnabled && (
-        <div className="space-y-2 border-t border-border pt-4">
-          <p className="text-xs text-muted">Ou entrar com</p>
-          {GROK_PROVIDERS.map((p) => (
-            <Button
-              key={p.providerId}
-              type="button"
-              variant="secondary"
-              className="w-full"
-              onClick={() => signIn(p.providerId, { callbackURL: "/admin" })}
-            >
-              Continuar com {p.label}
-            </Button>
-          ))}
-        </div>
-      )}
     </GateShell>
   );
 }
