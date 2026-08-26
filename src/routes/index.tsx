@@ -34,7 +34,7 @@ function Home() {
         )}
         aria-hidden={locked}
       >
-        <AppHeader />
+        <AppHeader access={access} />
         <main className="no-print min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-6 sm:py-6 lg:px-8">
           {sheet === "resumo" ? <MonthOverview /> : <DaySheet day={sheet} />}
         </main>

@@ -40,9 +40,14 @@ export function IpLockOverlay({
             ? "Se este for o posto do serviço, o administrador deve adicionar este IP à lista."
             : "Ainda não há IP autorizados. O administrador deve guardar a lista em Administração."}
         </p>
-        <Button asChild className="mt-5 w-full">
-          <Link to="/login">Entrar como administrador</Link>
-        </Button>
+        <div className="mt-5 grid gap-2">
+          <Button asChild className="w-full">
+            <a href="/login?papel=equipa">Entrar como equipa</a>
+          </Button>
+          <Button asChild variant="secondary" className="w-full">
+            <Link to="/login">Entrar como administrador</Link>
+          </Button>
+        </div>
       </div>
     </div>
   );

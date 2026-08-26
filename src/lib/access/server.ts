@@ -1,19 +1,12 @@
 import { getSql } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth/verify.server";
 import { anyIpAllowed, clientIp, clientIps, isPreviewHost } from "./ip.server";
+import { guestPasswordIsSet, hasGuestSession } from "./guest.server";
+import type { AccessState } from "./types";
+
+export type { AccessState };
 
 const ACCESS_BLOB = "access-v1";
-
-export type AccessState = {
-  setupNeeded: boolean;
-  granted: boolean;
-  reason: "ok" | "setup" | "ip" | "unset";
-  clientIp: string;
-  clientIps: string[];
-  preview: boolean;
-  allowedIps: string;
-  isAdmin: boolean;
-};
 
 type SettingsRow = {
   allowed_ips: string;
@@ -84,57 +77,56 @@ export async function readAccessState(): Promise<AccessState> {
   const setupNeeded = !(await adminExists());
   const settings = await ensureSettings();
   const admin = Boolean(await getSessionUser());
+  const guestEnabled = await guestPasswordIsSet();
+  const guest = !admin && hasGuestSession();
   const hasList = Boolean(settings.allowed_ips.trim());
+
+  const base = {
+    clientIp: ip,
+    clientIps: ips,
+    preview,
+    isAdmin: admin,
+    isGuest: guest,
+    guestEnabled,
+  };
 
   if (setupNeeded) {
     return {
+      ...base,
       setupNeeded: true,
       granted: false,
       reason: "setup",
-      clientIp: ip,
-      clientIps: ips,
-      preview,
       allowedIps: "",
-      isAdmin: false,
     };
   }
 
-  if (admin) {
+  if (admin || guest) {
     return {
+      ...base,
       setupNeeded: false,
       granted: true,
       reason: "ok",
-      clientIp: ip,
-      clientIps: ips,
-      preview,
       allowedIps: settings.allowed_ips,
-      isAdmin: true,
     };
   }
 
   if (!hasList) {
     return {
+      ...base,
       setupNeeded: false,
       granted: preview,
       reason: preview ? "ok" : "unset",
-      clientIp: ip,
-      clientIps: ips,
-      preview,
       allowedIps: settings.allowed_ips,
-      isAdmin: false,
     };
   }
 
   const ok = anyIpAllowed(ips, settings.allowed_ips) || preview;
   return {
+    ...base,
     setupNeeded: false,
     granted: ok,
     reason: ok ? "ok" : "ip",
-    clientIp: ip,
-    clientIps: ips,
-    preview,
     allowedIps: settings.allowed_ips,
-    isAdmin: false,
   };
 }
 

@@ -4,22 +4,26 @@ import { Button } from "@/components/ui/button";
 import { useMonthDays, useReportStore } from "@/lib/report/store";
 import { MONTH_NAMES } from "@/lib/report/types";
 import { downloadMonthExcel, monthFileName } from "@/lib/report/excel";
-import { Link } from "@tanstack/react-router";
+import { useRouter } from "@tanstack/react-router";
 import { UserButton } from "@/lib/auth/gates";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { OrgBanner } from "@/components/org-banner";
+import { signOutGuest } from "@/lib/access/functions";
+import type { AccessState } from "@/lib/access/types";
 import {
   APP_HEADLINE,
   APP_NAME,
   SITE_SHORT,
 } from "@/lib/report/paper";
 
-export function AppHeader() {
+export function AppHeader({ access }: { access?: AccessState }) {
   const year = useReportStore((s) => s.year);
   const month = useReportStore((s) => s.month);
   const setMonth = useReportStore((s) => s.setMonth);
   const days = useMonthDays();
   const { user, isPending } = useCurrentUserState();
+  const router = useRouter();
+  const guest = Boolean(access?.isGuest);
 
   const prev = () => {
     if (month === 1) setMonth(year - 1, 12);
@@ -90,12 +94,27 @@ export function AppHeader() {
             <span className="size-10 shrink-0 rounded-md bg-sunken" />
           ) : user ? (
             <UserButton />
+          ) : guest ? (
+            <div className="flex items-center gap-2">
+              <span className="rounded-md bg-sunken px-2 py-1 text-xs font-medium text-muted">
+                Equipa
+              </span>
+              <button
+                type="button"
+                className="text-sm underline-offset-4 opacity-70 hover:underline"
+                onClick={() => {
+                  void signOutGuest().then(() => router.invalidate());
+                }}
+              >
+                Sair
+              </button>
+            </div>
           ) : (
             <Button variant="ghost" size="sm" asChild>
-              <Link to="/login">
+              <a href="/login?papel=equipa">
                 <Shield />
-                <span className="hidden sm:inline">Admin</span>
-              </Link>
+                <span className="hidden sm:inline">Entrar</span>
+              </a>
             </Button>
           )}
         </div>

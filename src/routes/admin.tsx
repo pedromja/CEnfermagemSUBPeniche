@@ -3,10 +3,11 @@ import { createFileRoute, redirect, useRouter } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { MiniField } from "@/components/field-row";
 import { UserButton } from "@/lib/auth/gates";
-import { getAccessState, saveAccessPolicy } from "@/lib/access/functions";
+import { getAccessState, saveAccessPolicy, saveGuestPassword } from "@/lib/access/functions";
 import { listAuditLog } from "@/lib/audit/functions";
 import type { AuditRow } from "@/lib/audit/types";
 import {
@@ -78,6 +79,9 @@ function AdminPage() {
   const [allowedIps, setAllowedIps] = useState(access.allowedIps);
   const [busy, setBusy] = useState(false);
   const [backupBusy, setBackupBusy] = useState<string | null>(null);
+  const [guestPassword, setGuestPassword] = useState("");
+  const [guestConfirm, setGuestConfirm] = useState("");
+  const [guestBusy, setGuestBusy] = useState(false);
 
   const addThisIp = () => {
     const detected = (access.clientIps?.length ? access.clientIps : [access.clientIp]).filter(Boolean);
@@ -110,6 +114,30 @@ function AdminPage() {
       );
     } finally {
       setBusy(false);
+    }
+  };
+
+  const onSaveGuest = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (guestPassword.length < 8) {
+      toast.error("A palavra-passe da equipa deve ter pelo menos 8 caracteres.");
+      return;
+    }
+    if (guestPassword !== guestConfirm) {
+      toast.error("As palavras-passe não coincidem.");
+      return;
+    }
+    setGuestBusy(true);
+    try {
+      await saveGuestPassword({ data: { password: guestPassword } });
+      setGuestPassword("");
+      setGuestConfirm("");
+      toast.success("Palavra-passe da equipa guardada.");
+      await router.invalidate();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Não foi possível guardar.");
+    } finally {
+      setGuestBusy(false);
     }
   };
 
@@ -233,6 +261,47 @@ function AdminPage() {
                 Ir ao relatório
               </Button>
             </div>
+          </form>
+        </section>
+
+        <section className="rounded-xl border border-border bg-surface p-5">
+          <h2 className="font-display text-lg font-semibold">Conta da equipa</h2>
+          <p className="mt-1 text-sm text-muted">
+            Palavra-passe única para os enfermeiros preencherem o relatório no
+            telemóvel (PWA), fora da rede do serviço. Não abre a Administração,
+            as cópias de segurança nem o diário de acções.
+            {access.guestEnabled
+              ? " A conta já está activa; definir de novo substitui a palavra-passe."
+              : " Ainda não está definida."}
+          </p>
+          <form className="mt-4 space-y-3" onSubmit={onSaveGuest}>
+            <MiniField label="Nova palavra-passe">
+              <Input
+                type="password"
+                value={guestPassword}
+                onChange={(e) => setGuestPassword(e.target.value)}
+                autoComplete="new-password"
+                minLength={8}
+                required
+              />
+            </MiniField>
+            <MiniField label="Confirmar palavra-passe">
+              <Input
+                type="password"
+                value={guestConfirm}
+                onChange={(e) => setGuestConfirm(e.target.value)}
+                autoComplete="new-password"
+                minLength={8}
+                required
+              />
+            </MiniField>
+            <Button type="submit" disabled={guestBusy}>
+              {guestBusy
+                ? "A guardar…"
+                : access.guestEnabled
+                  ? "Actualizar palavra-passe da equipa"
+                  : "Activar conta da equipa"}
+            </Button>
           </form>
         </section>
 

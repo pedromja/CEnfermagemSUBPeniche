@@ -3,6 +3,7 @@ import { Toaster } from "sonner";
 import { AuthProvider } from "@/lib/auth/provider";
 import { PreviewHostBridge } from "@/components/preview-host-bridge";
 import { APP_NAME, ORG_SHORT, SITE_FULL, SITE_SHORT } from "@/lib/report/paper";
+import { PwaRegister } from "@/components/pwa-register";
 import appCss from "../styles.css?url";
 
 export const Route = createRootRoute({
@@ -16,9 +17,14 @@ export const Route = createRootRoute({
         content: `${APP_NAME} — ${ORG_SHORT}, ${SITE_FULL}. Relatório diário do coordenador de enfermagem, um separador por dia e Excel mensal.`,
       },
       { name: "theme-color", content: "#007a33" },
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-title", content: "SUB Peniche" },
+      { name: "mobile-web-app-capable", content: "yes" },
     ],
     links: [
-      { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
+      { rel: "icon", type: "image/png", href: "/icon-192.png" },
+      { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
+      { rel: "manifest", href: "/manifest.webmanifest" },
       { rel: "stylesheet", href: appCss },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       {
@@ -41,6 +47,7 @@ export const Route = createRootRoute({
         <PreviewHostBridge />
         <AuthProvider>
           <Outlet />
+          <PwaRegister />
         </AuthProvider>
         <Toaster
           position="top-right"
