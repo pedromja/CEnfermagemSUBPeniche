@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import type { ShiftId, ShiftReport, StaffMember } from "@/lib/report/types";
 import { SHIFT_LABEL_UPPER } from "@/lib/report/types";
 import { shiftHasAlert, shiftIsFilled } from "@/lib/report/model";
+import { SaveReportButton } from "@/components/save-report-button";
 
 const SHIFT_META: Record<
   ShiftId,
@@ -346,6 +347,9 @@ export function ShiftForm({
             )}
           </div>
         </FieldRow>
+      </div>
+      <div className="no-print flex justify-end border-t border-border px-4 py-4 sm:px-5 lg:px-6">
+        <SaveReportButton />
       </div>
     </section>
   );
