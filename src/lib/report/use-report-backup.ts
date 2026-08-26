@@ -7,20 +7,30 @@ import { STAFF_SEED } from "./types";
 let saveTimer: ReturnType<typeof setTimeout> | undefined;
 let hydratedFromServer = false;
 
+function payload() {
+  const { staff, months } = useReportStore.getState();
+  return {
+    savedAt: new Date().toISOString(),
+    staff,
+    months,
+  };
+}
+
 function pushBackup() {
   if (saveTimer) clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
-    const { staff, months } = useReportStore.getState();
-    void saveReportBackup({
-      data: {
-        savedAt: new Date().toISOString(),
-        staff,
-        months,
-      },
-    }).catch((err) => {
+    void saveReportBackup({ data: payload() }).catch((err) => {
       console.error("[backup] falhou a gravar o relatório:", err);
     });
   }, 1200);
+}
+
+export async function flushReportBackup(): Promise<void> {
+  if (saveTimer) {
+    clearTimeout(saveTimer);
+    saveTimer = undefined;
+  }
+  await saveReportBackup({ data: payload() });
 }
 
 export function useReportBackup(enabled = true) {

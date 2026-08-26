@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Eraser, FileText, Pencil } from "lucide-react";
+import { FileText, Pencil, Save } from "lucide-react";
 import { ShiftForm } from "@/components/shift-form";
 import { PaperForm } from "@/components/paper-form";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ import {
 } from "@/lib/report/model";
 import { SHIFT_ORDER, WEEKDAYS_LONG, type ShiftId } from "@/lib/report/types";
 import { ORG_SHORT, SITE_SHORT } from "@/lib/report/paper";
+import { flushReportBackup } from "@/lib/report/use-report-backup";
 
 export function DaySheet({
   day,
@@ -33,8 +34,8 @@ export function DaySheet({
   const patchShift = useReportStore((s) => s.patchShift);
   const patchOcorrencia = useReportStore((s) => s.patchOcorrencia);
   const rememberStaff = useReportStore((s) => s.rememberStaff);
-  const resetDay = useReportStore((s) => s.resetDay);
   const [folha, setFolha] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   const weekday = WEEKDAYS_LONG[weekdayIndex(year, month, day)];
 
@@ -67,19 +68,6 @@ export function DaySheet({
             {folha || readOnly ? <FileText /> : <Pencil />}
             {readOnly ? "Só consulta" : folha ? "Editar campos" : "Vista de folha"}
           </Button>
-          {!readOnly && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-muted"
-            onClick={() => {
-              if (confirm(`Limpar o dia ${formatPtDate(date)}?`)) resetDay(date);
-            }}
-          >
-            <Eraser />
-            Limpar dia
-          </Button>
-          )}
         </div>
       </header>
 
@@ -135,6 +123,30 @@ export function DaySheet({
               ))}
             </div>
           </section>
+
+          <div className="no-print flex flex-col items-stretch gap-2 rounded-xl border border-border bg-surface p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
+            <p className="text-sm text-muted">
+              Pode sair depois de guardar. O turno deste dia fica gravado.
+            </p>
+            <Button
+              size="lg"
+              disabled={saving}
+              onClick={async () => {
+                setSaving(true);
+                try {
+                  await flushReportBackup();
+                } catch (err) {
+                  console.error("[guardar]", err);
+                } finally {
+                  setSaving(false);
+                }
+                window.alert("Relatório CE guardado");
+              }}
+            >
+              <Save />
+              {saving ? "A guardar…" : "Guardar"}
+            </Button>
+          </div>
         </>
       )}
     </div>
