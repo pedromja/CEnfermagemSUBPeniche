@@ -93,6 +93,7 @@ export const WEEKDAYS_LONG = [
 ] as const;
 
 export const STAFF_SEED: StaffMember[] = [
+  { nMec: "10094", nome: "Anabela Vala" },
   { nMec: "10044", nome: "Ana Isabel Rocha Santos" },
   { nMec: "10085", nome: "Maria Lúcia D. Neves" },
   { nMec: "10186", nome: "José Manuel Leitão" },
