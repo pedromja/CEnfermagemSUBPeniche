@@ -108,4 +108,6 @@ export async function saveAllowedIps(input: {
         updated_at = now()
     where id = 'default'
   `;
+  const { persistDb } = await import("@/lib/db");
+  await persistDb();
 }

@@ -13,7 +13,7 @@ Relatório diário do coordenador de enfermagem: um separador por dia, Excel men
    - **Node:** `22`
 5. Site publicado: [cenfermagempeniche.netlify.app](https://cenfermagempeniche.netlify.app)
 
-Na Netlify, defina também `DATABASE_URL` (Postgres) para a conta de administrador e o registo de acções persistirem.
+Na Netlify, a conta de administrador, a lista de IP e os relatórios ficam gravados automaticamente. Não é obrigatório definir `DATABASE_URL`.
 
 ## Local
 

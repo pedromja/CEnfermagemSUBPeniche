@@ -112,16 +112,30 @@ async function createPgliteSql(): Promise<Sql> {
   globalRef.__pgliteInstance__ ??= (async () => {
     const { PGlite } = await import("@electric-sql/pglite");
     const { pgliteWasmOptions } = await import("./pglite-sidecars");
+    const { loadPgliteDump } = await import("./pglite-persist");
     const sidecars = await pgliteWasmOptions();
-    const pg = new PGlite({
+    const dump = await loadPgliteDump();
+    const opts = {
       parsers: {
         [OID_INT8]: Number,
         [OID_DATE]: identity,
         [OID_INTERVAL]: identity,
       },
       ...sidecars,
-    });
-    await pg.waitReady;
+      ...(dump ? { loadDataDir: dump } : {}),
+    };
+    let pg: import("@electric-sql/pglite").PGlite;
+    try {
+      pg = new PGlite(opts);
+      await pg.waitReady;
+    } catch (err) {
+      console.error("[db] dump PGLite inválido, a recomeçar:", err);
+      pg = new PGlite({
+        parsers: opts.parsers,
+        ...sidecars,
+      });
+      await pg.waitReady;
+    }
     await pg.exec(
       "create table if not exists _migrations (name text primary key, applied_at timestamptz not null default now())",
     );
@@ -164,8 +178,12 @@ async function createPgliteSql(): Promise<Sql> {
   globalRef.__pgliteMigrateChain__ = pass;
   await pass;
 
+  const { flushPgliteDump } = await import("./pglite-persist");
   return toSql(async <T>(text: string, params: unknown[]) => {
     const result = await pg.query<T>(text, params);
+    if (!/^\s*(select|show|explain)\b/i.test(text)) {
+      await flushPgliteDump(pg);
+    }
     return result.rows;
   });
 }
@@ -195,6 +213,14 @@ export function getSql(): Promise<Sql> {
     throw err;
   });
   return sqlPromise;
+}
+
+export async function persistDb(): Promise<void> {
+  if (dbSource !== "pglite") return;
+  const pg = await globalRef.__pgliteInstance__;
+  if (!pg) return;
+  const { flushPgliteDump } = await import("./pglite-persist");
+  await flushPgliteDump(pg);
 }
 
 /**

@@ -20,6 +20,8 @@ export async function appendAudit(input: {
       ${ip}
     )
   `;
+  const { persistDb } = await import("@/lib/db");
+  await persistDb();
 }
 
 export async function listAudit(limit = 200): Promise<AuditRow[]> {

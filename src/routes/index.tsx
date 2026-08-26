@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { AppHeader } from "@/components/app-header";
 import { DaySheet } from "@/components/day-sheet";
@@ -6,6 +5,7 @@ import { MonthOverview } from "@/components/month-overview";
 import { PrintMonth } from "@/components/print-month";
 import { SheetTabs } from "@/components/sheet-tabs";
 import { useReportStore } from "@/lib/report/store";
+import { useReportBackup } from "@/lib/report/use-report-backup";
 import { getAccessState } from "@/lib/access/functions";
 
 export const Route = createFileRoute("/")({
@@ -24,10 +24,7 @@ export const Route = createFileRoute("/")({
 
 function Home() {
   const sheet = useReportStore((s) => s.sheet);
-
-  useEffect(() => {
-    void useReportStore.persist.rehydrate();
-  }, []);
+  useReportBackup();
 
   return (
     <div className="flex h-dvh flex-col overflow-hidden bg-bg print:h-auto print:overflow-visible">
