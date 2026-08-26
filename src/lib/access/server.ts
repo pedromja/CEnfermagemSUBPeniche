@@ -1,12 +1,15 @@
 import { getSql } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth/verify.server";
-import { clientIp, ipAllowed, isPreviewHost } from "./ip.server";
+import { anyIpAllowed, clientIp, clientIps, isPreviewHost } from "./ip.server";
+
+const ACCESS_BLOB = "access-v1";
 
 export type AccessState = {
   setupNeeded: boolean;
   granted: boolean;
   reason: "ok" | "setup" | "ip" | "unset";
   clientIp: string;
+  clientIps: string[];
   preview: boolean;
   allowedIps: string;
   isAdmin: boolean;
@@ -15,6 +18,29 @@ export type AccessState = {
 type SettingsRow = {
   allowed_ips: string;
 };
+
+type AccessSnapshot = {
+  allowedIps: string;
+  updatedAt: string;
+};
+
+async function readBlobPolicy(): Promise<string> {
+  try {
+    const { loadJsonBlob } = await import("@/lib/pglite-persist");
+    const snap = await loadJsonBlob<AccessSnapshot>(ACCESS_BLOB);
+    return snap?.allowedIps?.trim() ?? "";
+  } catch {
+    return "";
+  }
+}
+
+async function writeBlobPolicy(allowedIps: string): Promise<void> {
+  const { saveJsonBlob } = await import("@/lib/pglite-persist");
+  await saveJsonBlob(ACCESS_BLOB, {
+    allowedIps,
+    updatedAt: new Date().toISOString(),
+  });
+}
 
 async function ensureSettings(): Promise<SettingsRow> {
   const sql = await getSql();
@@ -26,7 +52,19 @@ async function ensureSettings(): Promise<SettingsRow> {
   const rows = await sql<SettingsRow>`
     select allowed_ips from site_settings where id = 'default'
   `;
-  return rows[0] ?? { allowed_ips: "" };
+  const fromSql = rows[0]?.allowed_ips?.trim() ?? "";
+  const fromBlob = await readBlobPolicy();
+  const allowed = fromBlob || fromSql;
+  if (fromBlob && fromBlob !== fromSql) {
+    await sql`
+      update site_settings
+      set access_mode = 'ip',
+          allowed_ips = ${fromBlob},
+          updated_at = now()
+      where id = 'default'
+    `;
+  }
+  return { allowed_ips: allowed };
 }
 
 export async function adminExists(): Promise<boolean> {
@@ -37,7 +75,8 @@ export async function adminExists(): Promise<boolean> {
 
 export async function readAccessState(): Promise<AccessState> {
   const preview = isPreviewHost();
-  const ip = clientIp();
+  const ips = clientIps();
+  const ip = ips[0] ?? clientIp();
   const setupNeeded = !(await adminExists());
   const settings = await ensureSettings();
   const admin = Boolean(await getSessionUser());
@@ -49,6 +88,7 @@ export async function readAccessState(): Promise<AccessState> {
       granted: false,
       reason: "setup",
       clientIp: ip,
+      clientIps: ips,
       preview,
       allowedIps: "",
       isAdmin: false,
@@ -61,6 +101,7 @@ export async function readAccessState(): Promise<AccessState> {
       granted: true,
       reason: "ok",
       clientIp: ip,
+      clientIps: ips,
       preview,
       allowedIps: settings.allowed_ips,
       isAdmin: true,
@@ -73,18 +114,20 @@ export async function readAccessState(): Promise<AccessState> {
       granted: preview,
       reason: preview ? "ok" : "unset",
       clientIp: ip,
+      clientIps: ips,
       preview,
       allowedIps: settings.allowed_ips,
       isAdmin: false,
     };
   }
 
-  const ok = ipAllowed(ip, settings.allowed_ips) || preview;
+  const ok = anyIpAllowed(ips, settings.allowed_ips) || preview;
   return {
     setupNeeded: false,
     granted: ok,
     reason: ok ? "ok" : "ip",
     clientIp: ip,
+    clientIps: ips,
     preview,
     allowedIps: settings.allowed_ips,
     isAdmin: false,
@@ -108,6 +151,7 @@ export async function saveAllowedIps(input: {
         updated_at = now()
     where id = 'default'
   `;
+  await writeBlobPolicy(input.allowedIps);
   const { persistDb } = await import("@/lib/db");
   await persistDb();
 }

@@ -17,19 +17,25 @@ function ipv4ToInt(ip: string): number | null {
   return n >>> 0;
 }
 
-function normalizeIp(raw: string): string {
-  let ip = raw.trim().toLowerCase();
+export function normalizeIp(raw: string): string {
+  let ip = raw.trim().toLowerCase().replace(/^"|"$/g, "");
+  if (ip.startsWith("[") && ip.includes("]")) {
+    ip = ip.slice(1, ip.indexOf("]"));
+  } else if (/^\d{1,3}(\.\d{1,3}){3}:\d+$/.test(ip)) {
+    ip = ip.slice(0, ip.lastIndexOf(":"));
+  }
   if (ip.startsWith("::ffff:")) ip = ip.slice(7);
   return ip;
 }
 
 function ipMatchesRule(ip: string, rule: string): boolean {
-  const r = rule.trim();
+  const r = normalizeIp(rule);
   if (!r || r.startsWith("#")) return false;
+  const needle = normalizeIp(ip);
   if (r.includes("/")) {
     const [base, bitsStr] = r.split("/");
     const bits = Number(bitsStr);
-    const ipN = ipv4ToInt(normalizeIp(ip));
+    const ipN = ipv4ToInt(needle);
     const baseN = ipv4ToInt(normalizeIp(base ?? ""));
     if (ipN == null || baseN == null || !Number.isInteger(bits) || bits < 0 || bits > 32) {
       return false;
@@ -38,13 +44,13 @@ function ipMatchesRule(ip: string, rule: string): boolean {
     const mask = bits === 32 ? 0xffffffff : (~((1 << (32 - bits)) - 1)) >>> 0;
     return (ipN & mask) === (baseN & mask);
   }
-  return normalizeIp(ip) === normalizeIp(r);
+  return needle === r;
 }
 
 export function parseIpList(text: string): string[] {
   return text
     .split(/[\n,;]+/)
-    .map((s) => s.trim())
+    .map((s) => normalizeIp(s))
     .filter((s) => s && !s.startsWith("#"));
 }
 
@@ -54,13 +60,36 @@ export function ipAllowed(ip: string, allowText: string): boolean {
   return rules.some((rule) => ipMatchesRule(ip, rule));
 }
 
+export function anyIpAllowed(ips: string[], allowText: string): boolean {
+  return ips.some((ip) => ipAllowed(ip, allowText));
+}
+
+function pushHeader(into: string[], value: string | undefined | null) {
+  if (!value) return;
+  for (const part of value.split(/[\s,]+/)) {
+    const ip = normalizeIp(part);
+    if (ip && !into.includes(ip)) into.push(ip);
+  }
+}
+
+export function clientIps(): string[] {
+  const found: string[] = [];
+  pushHeader(found, getRequestHeader("x-nf-client-connection-ip"));
+  pushHeader(found, getRequestHeader("cf-connecting-ip"));
+  pushHeader(found, getRequestHeader("true-client-ip"));
+  pushHeader(found, getRequestHeader("x-real-ip"));
+  pushHeader(found, getRequestHeader("x-client-ip"));
+  pushHeader(found, getRequestHeader("x-forwarded-for"));
+  try {
+    pushHeader(found, getRequestIP({ xForwardedFor: true }));
+  } catch {
+    /* no request context */
+  }
+  return found;
+}
+
 export function clientIp(): string {
-  const nf = getRequestHeader("x-nf-client-connection-ip");
-  if (nf) return normalizeIp(nf.split(",")[0] ?? "");
-  const real = getRequestHeader("x-real-ip");
-  if (real) return normalizeIp(real.split(",")[0] ?? "");
-  const forwarded = getRequestIP({ xForwardedFor: true });
-  return forwarded ? normalizeIp(forwarded) : "";
+  return clientIps()[0] ?? "";
 }
 
 export function isPreviewHost(): boolean {

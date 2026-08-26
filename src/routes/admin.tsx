@@ -68,7 +68,8 @@ function AdminPage() {
   const [busy, setBusy] = useState(false);
 
   const addThisIp = () => {
-    if (!access.clientIp) {
+    const detected = (access.clientIps?.length ? access.clientIps : [access.clientIp]).filter(Boolean);
+    if (detected.length === 0) {
       toast.error("Não foi possível ler o IP deste acesso.");
       return;
     }
@@ -76,11 +77,12 @@ function AdminPage() {
       .split(/[\n,;]+/)
       .map((s) => s.trim())
       .filter(Boolean);
-    if (lines.includes(access.clientIp)) {
+    const extra = detected.filter((ip) => !lines.includes(ip));
+    if (extra.length === 0) {
       toast.message("Este IP já está na lista.");
       return;
     }
-    setAllowedIps(lines.concat(access.clientIp).join("\n"));
+    setAllowedIps(lines.concat(extra).join("\n"));
   };
 
   const onSave = async (e: React.FormEvent) => {
@@ -136,7 +138,9 @@ function AdminPage() {
           <p className="mt-3 rounded-md bg-sunken px-3 py-2 text-sm">
             IP deste acesso:{" "}
             <span className="font-medium tabular-nums">
-              {access.clientIp || "desconhecido"}
+              {(access.clientIps?.length ? access.clientIps : [access.clientIp])
+                .filter(Boolean)
+                .join(" · ") || "desconhecido"}
             </span>
           </p>
 
