@@ -23,8 +23,9 @@ function pushBackup() {
   }, 1200);
 }
 
-export function useReportBackup() {
+export function useReportBackup(enabled = true) {
   useEffect(() => {
+    if (!enabled) return;
     let cancelled = false;
     void (async () => {
       await useReportStore.persist.rehydrate();
@@ -72,5 +73,5 @@ export function useReportBackup() {
       cancelled = true;
       unsub();
     };
-  }, []);
+  }, [enabled]);
 }
