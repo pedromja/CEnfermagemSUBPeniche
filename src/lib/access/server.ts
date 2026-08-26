@@ -19,8 +19,8 @@ type AccessSnapshot = {
 
 async function readBlobPolicy(): Promise<string> {
   try {
-    const { loadJsonBlob } = await import("@/lib/pglite-persist");
-    const snap = await loadJsonBlob<AccessSnapshot>(ACCESS_BLOB);
+    const { loadJsonKv } = await import("@/lib/app-kv");
+    const snap = await loadJsonKv<AccessSnapshot>(ACCESS_BLOB);
     return snap?.allowedIps?.trim() ?? "";
   } catch {
     return "";
@@ -28,8 +28,8 @@ async function readBlobPolicy(): Promise<string> {
 }
 
 async function writeBlobPolicy(allowedIps: string): Promise<void> {
-  const { saveJsonBlob } = await import("@/lib/pglite-persist");
-  await saveJsonBlob(ACCESS_BLOB, {
+  const { saveJsonKv } = await import("@/lib/app-kv");
+  await saveJsonKv(ACCESS_BLOB, {
     allowedIps,
     updatedAt: new Date().toISOString(),
   });

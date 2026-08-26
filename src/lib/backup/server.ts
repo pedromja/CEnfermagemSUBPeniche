@@ -1,18 +1,13 @@
-import {
-  DUMP_KEY,
-  getBlobStore,
-  loadJsonBlob,
-  saveJsonBlob,
-} from "@/lib/pglite-persist";
+import { deleteJsonKv, loadJsonKv, saveJsonKv } from "@/lib/app-kv";
+import { DUMP_KEY, getBlobStore } from "@/lib/pglite-persist";
 import type { ReportBackup } from "@/lib/report/backup";
+import type { BackupMeta, BackupReason } from "./types";
+
+export type { BackupMeta, BackupReason };
 
 export const BACKUP_INTERVAL_MS = 48 * 60 * 60 * 1000;
 export const BACKUP_KEEP_MS = 40 * 24 * 60 * 60 * 1000;
 const INDEX_KEY = "backups-index";
-
-import type { BackupMeta, BackupReason } from "./types";
-
-export type { BackupMeta, BackupReason };
 
 type BackupIndex = { items: BackupMeta[] };
 
@@ -29,21 +24,22 @@ function newBackupId(): string {
 }
 
 async function readIndex(): Promise<BackupMeta[]> {
-  const index = await loadJsonBlob<BackupIndex>(INDEX_KEY);
+  const index = await loadJsonKv<BackupIndex>(INDEX_KEY);
   return index?.items ?? [];
 }
 
 async function writeIndex(items: BackupMeta[]): Promise<void> {
-  await saveJsonBlob(INDEX_KEY, { items });
+  await saveJsonKv(INDEX_KEY, { items });
 }
 
 async function deleteBackupBlobs(id: string): Promise<void> {
-  const store = await getBlobStore();
-  if (!store) return;
-  await Promise.allSettled([
-    store.delete(`backup/${id}/data`),
-    store.delete(`backup/${id}/pglite-dump`),
-  ]);
+  await deleteJsonKv(`backup/${id}/data`);
+  try {
+    const store = await getBlobStore();
+    await store?.delete(`backup/${id}/pglite-dump`);
+  } catch {
+    /* ignore */
+  }
 }
 
 export async function pruneBackups(items = readIndex()): Promise<BackupMeta[]> {
@@ -71,8 +67,8 @@ export async function createBackup(reason: BackupReason): Promise<BackupMeta> {
   await persistDb();
 
   const [report, access] = await Promise.all([
-    loadJsonBlob<ReportBackup>("report-v1"),
-    loadJsonBlob<AccessSnapshot>("access-v1"),
+    loadJsonKv<ReportBackup>("report-v1"),
+    loadJsonKv<AccessSnapshot>("access-v1"),
   ]);
 
   const store = await getBlobStore();
@@ -88,13 +84,9 @@ export async function createBackup(reason: BackupReason): Promise<BackupMeta> {
     hasDump: Boolean(dump),
   };
 
-  if (!store) {
-    throw new Error("O armazenamento de cópias não está disponível neste ambiente.");
-  }
-
   const payload: BackupPayload = { meta, report, access };
-  await store.setJSON(`backup/${meta.id}/data`, payload);
-  if (dump) await store.set(`backup/${meta.id}/pglite-dump`, dump);
+  await saveJsonKv(`backup/${meta.id}/data`, payload);
+  if (dump && store) await store.set(`backup/${meta.id}/pglite-dump`, dump);
 
   const items = await pruneBackups();
   items.unshift(meta);
@@ -107,8 +99,6 @@ let autoLock: Promise<void> | null = null;
 export async function maybeAutoBackup(): Promise<void> {
   if (autoLock) return autoLock;
   autoLock = (async () => {
-    const store = await getBlobStore();
-    if (!store) return;
     const items = await pruneBackups();
     const latest = items[0];
     if (latest && Date.now() - Date.parse(latest.createdAt) < BACKUP_INTERVAL_MS) {
@@ -122,30 +112,27 @@ export async function maybeAutoBackup(): Promise<void> {
 }
 
 export async function restoreBackup(id: string): Promise<BackupMeta> {
-  const store = await getBlobStore();
-  if (!store) throw new Error("O armazenamento de cópias não está disponível.");
-
-  const payload = await store.get(`backup/${id}/data`, { type: "json" }) as BackupPayload | null;
+  const payload = await loadJsonKv<BackupPayload>(`backup/${id}/data`);
   if (!payload?.meta) throw new Error("Cópia de segurança não encontrada.");
 
-  if (payload.report) await saveJsonBlob("report-v1", payload.report);
-  if (payload.access) await saveJsonBlob("access-v1", payload.access);
+  if (payload.report) await saveJsonKv("report-v1", payload.report);
+  if (payload.access) await saveJsonKv("access-v1", payload.access);
 
-  const dump = await store.get(`backup/${id}/pglite-dump`, { type: "arrayBuffer" });
-  if (dump) await store.set(DUMP_KEY, dump);
-
-  const { resetPgliteCache } = await import("@/lib/db");
-  resetPgliteCache();
-  const { getSql } = await import("@/lib/db");
-  await getSql();
+  const store = await getBlobStore();
+  if (store) {
+    const dump = await store.get(`backup/${id}/pglite-dump`, { type: "arrayBuffer" });
+    if (dump) await store.set(DUMP_KEY, dump);
+    const { resetPgliteCache } = await import("@/lib/db");
+    resetPgliteCache();
+    const { getSql } = await import("@/lib/db");
+    await getSql();
+  }
 
   return payload.meta;
 }
 
 export async function readBackupPayload(id: string): Promise<BackupPayload> {
-  const store = await getBlobStore();
-  if (!store) throw new Error("O armazenamento de cópias não está disponível.");
-  const payload = await store.get(`backup/${id}/data`, { type: "json" }) as BackupPayload | null;
+  const payload = await loadJsonKv<BackupPayload>(`backup/${id}/data`);
   if (!payload?.meta) throw new Error("Cópia de segurança não encontrada.");
   return payload;
 }

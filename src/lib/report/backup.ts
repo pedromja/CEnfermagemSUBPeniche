@@ -11,15 +11,15 @@ const KEY = "report-v1";
 
 export const loadReportBackup = createServerFn({ method: "GET" }).handler(
   async () => {
-    const { loadJsonBlob } = await import("@/lib/pglite-persist");
-    return loadJsonBlob<ReportBackup>(KEY);
+    const { loadJsonKv } = await import("@/lib/app-kv");
+    return loadJsonKv<ReportBackup>(KEY);
   },
 );
 
 export const saveReportBackup = createServerFn({ method: "POST" })
   .validator((input: ReportBackup) => input)
   .handler(async ({ data }) => {
-    const { saveJsonBlob } = await import("@/lib/pglite-persist");
-    await saveJsonBlob(KEY, data);
+    const { saveJsonKv } = await import("@/lib/app-kv");
+    await saveJsonKv(KEY, data);
     return { ok: true as const };
   });

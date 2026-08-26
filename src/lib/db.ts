@@ -18,6 +18,20 @@ const databaseUrl =
  */
 export const dbSource: DbSource = databaseUrl ? "neon" : "pglite";
 
+function runningOnCloudflare(): boolean {
+  if (process.env.CF_PAGES || process.env.NITRO_PRESET === "cloudflare-pages") {
+    return true;
+  }
+  try {
+    return (
+      typeof navigator !== "undefined" &&
+      /Cloudflare-Workers/i.test(String(navigator.userAgent))
+    );
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Minimal shared SQL surface, satisfied by both Neon and PGLite. Both the
  * tagged-template and `.query()` forms resolve to an array of row objects:
@@ -87,8 +101,15 @@ function toSql(run: Run): Sql {
 
 function createNeonSql(): Promise<Sql> {
   globalRef.__pgSqlPromise__ ??= (async () => {
-    // Regular Postgres driver: node-postgres (`pg`) — works directly with Neon's
-    // pooled endpoint. One pool per process; warm serverless instances reuse it.
+    if (runningOnCloudflare()) {
+      const { neon } = await import("@neondatabase/serverless");
+      if (!databaseUrl) throw new Error("DATABASE_URL em falta");
+      const http = neon(databaseUrl);
+      return toSql(async <T>(text: string, params: unknown[]) => {
+        const rows = await http.query(text, params);
+        return rows as T[];
+      });
+    }
     const { Pool, types } = await import("pg");
     types.setTypeParser(OID_INT8, Number);
     types.setTypeParser(OID_DATE, identity);
