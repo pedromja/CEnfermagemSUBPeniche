@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { DayReport, SheetId, ShiftId, ShiftReport, StaffMember } from "./types";
 import { SHIFT_LABEL, STAFF_SEED } from "./types";
-import { emptyDay, isoDate, mergeStaff, dayStatus } from "./model";
+import { emptyDay, isoDate, mergeStaff, dayStatus, upsertStaffDirectory } from "./model";
 import { logDayDeleted, logFilledDayEdit } from "@/lib/audit/client";
 import { AGOSTO_2026 } from "./seed-agosto";
 
@@ -158,6 +158,14 @@ export const useReportStore = create<ReportState>()(
     {
       name: STORAGE_KEY,
       skipHydration: true,
+      merge: (persisted, current) => {
+        const p = (persisted ?? {}) as Partial<ReportState>;
+        return {
+          ...current,
+          ...p,
+          staff: upsertStaffDirectory(STAFF_SEED, p.staff ?? current.staff),
+        };
+      },
       partialize: (s) => ({
         year: s.year,
         month: s.month,

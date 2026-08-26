@@ -151,3 +151,21 @@ export function mergeStaff(
   }
   return [...existing, { nome: n, nMec: m }];
 }
+
+export function upsertStaffDirectory<T extends { nome: string; nMec: string }>(
+  seed: T[],
+  existing: T[],
+): T[] {
+  const used = new Set<string>();
+  const out: T[] = seed.map((s) => {
+    used.add(s.nMec);
+    return { ...s };
+  });
+  for (const s of existing) {
+    if (s.nMec && !used.has(s.nMec)) {
+      used.add(s.nMec);
+      out.push(s);
+    }
+  }
+  return out;
+}

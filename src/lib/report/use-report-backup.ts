@@ -1,6 +1,8 @@
 import { useEffect } from "react";
 import { useReportStore } from "./store";
 import { loadReportBackup, saveReportBackup } from "./backup";
+import { upsertStaffDirectory } from "./model";
+import { STAFF_SEED } from "./types";
 
 let saveTimer: ReturnType<typeof setTimeout> | undefined;
 let hydratedFromServer = false;
@@ -40,13 +42,24 @@ export function useReportBackup() {
         const remoteStamp = Date.parse(remote.savedAt) || 0;
         if (remoteStamp >= localStamp) {
           useReportStore.setState({
-            staff: remote.staff?.length ? remote.staff : local.staff,
+            staff: upsertStaffDirectory(
+              STAFF_SEED,
+              remote.staff?.length ? remote.staff : local.staff,
+            ),
             months: remote.months,
           });
+        } else {
+          useReportStore.setState({
+            staff: upsertStaffDirectory(STAFF_SEED, local.staff),
+          });
         }
+      } else {
+        useReportStore.setState({
+          staff: upsertStaffDirectory(STAFF_SEED, useReportStore.getState().staff),
+        });
       }
       hydratedFromServer = true;
-      if (!remote?.months) pushBackup();
+      pushBackup();
     })();
 
     const unsub = useReportStore.subscribe((state, prev) => {
