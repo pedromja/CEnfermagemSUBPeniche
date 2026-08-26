@@ -64,6 +64,17 @@ function previewAuthSecret(): string {
   return globalAuthRef.__grokAuthPreviewSecret__;
 }
 
+/** Stable signing key on the published Netlify site (each lambda must share it). */
+const PUBLISHED_AUTH_SECRET =
+  "985d9269d6b5a6102c95ea6d1d3fc4fc0cd440176c1236a50fa8a2751f6fa41b";
+
+function authSecret(): string {
+  const fromEnv = env("BETTER_AUTH_SECRET");
+  if (fromEnv) return fromEnv;
+  if (process.env.NETLIFY || process.env.SITE_ID) return PUBLISHED_AUTH_SECRET;
+  return previewAuthSecret();
+}
+
 /** Read an env var, treating empty/whitespace as unset. */
 const env = (key: string): string | undefined => {
   const value = process.env[key]?.trim();
@@ -192,7 +203,7 @@ export const auth = betterAuth({
   baseURL,
   // Deployed apps inject BETTER_AUTH_SECRET. Preview: process-stable secret on
   // globalThis so HMR doesn't invalidate PGLite-backed sessions (see above).
-  secret: env("BETTER_AUTH_SECRET") ?? previewAuthSecret(),
+  secret: authSecret(),
   database,
 
   // CSRF / origin check for credentialed auth POSTs (email sign-up/sign-in, …).

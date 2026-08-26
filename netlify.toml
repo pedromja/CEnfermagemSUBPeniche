@@ -5,6 +5,7 @@
 [build.environment]
   NODE_VERSION = "22"
   BETTER_AUTH_URL = "https://cenfermagempeniche.netlify.app"
+  BETTER_AUTH_SECRET = "985d9269d6b5a6102c95ea6d1d3fc4fc0cd440176c1236a50fa8a2751f6fa41b"
 
 [functions]
   directory = ".netlify/functions-internal"
