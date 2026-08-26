@@ -1,3 +1,5 @@
+import { Home } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import {
   ORG_LOGO_ALT,
   SITE_FULL,
@@ -5,8 +7,13 @@ import {
   SITE_PHOTO_CARD,
   SITE_SHORT,
 } from "@/lib/report/paper";
+import { useReportStore } from "@/lib/report/store";
 
 export function OrgBanner({ photo = false }: { photo?: boolean }) {
+  const goHome = () => {
+    useReportStore.getState().setSheet("resumo");
+  };
+
   return (
     <div className="bg-uls text-uls-fg">
       <div className="mx-auto flex max-w-7xl items-center gap-4 px-4 py-2.5 sm:px-6 lg:gap-6 lg:px-8 lg:py-3">
@@ -40,6 +47,15 @@ export function OrgBanner({ photo = false }: { photo?: boolean }) {
             className="site-photo hidden h-12 w-[4.75rem] shrink-0 rounded-md object-cover object-[42%_62%] ring-1 ring-uls-fg/35 sm:block lg:h-14 lg:w-24"
           />
         ) : null}
+
+        <Link
+          to="/"
+          onClick={goHome}
+          className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-md bg-uls-fg/15 px-3 text-sm font-medium text-uls-fg ring-1 ring-uls-fg/30 hover:bg-uls-fg/25"
+        >
+          <Home className="size-4" />
+          <span className="hidden sm:inline">Início</span>
+        </Link>
       </div>
     </div>
   );

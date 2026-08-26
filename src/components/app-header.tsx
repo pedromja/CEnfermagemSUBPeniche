@@ -1,7 +1,7 @@
-import { ChevronLeft, ChevronRight, Download, Printer, RotateCcw, Shield } from "lucide-react";
+import { ChevronLeft, ChevronRight, Download, Printer, Shield } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { useMonthDays, useReportStore, monthKey } from "@/lib/report/store";
+import { useMonthDays, useReportStore } from "@/lib/report/store";
 import { MONTH_NAMES } from "@/lib/report/types";
 import { downloadMonthExcel, monthFileName } from "@/lib/report/excel";
 import { Link } from "@tanstack/react-router";
@@ -18,7 +18,6 @@ export function AppHeader() {
   const year = useReportStore((s) => s.year);
   const month = useReportStore((s) => s.month);
   const setMonth = useReportStore((s) => s.setMonth);
-  const restoreAgosto = useReportStore((s) => s.restoreAgosto);
   const days = useMonthDays();
   const { user, isPending } = useCurrentUserState();
 
@@ -78,26 +77,6 @@ export function AppHeader() {
             </Button>
           </div>
 
-          {monthKey(year, month) === "2026-08" && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="hidden lg:inline-flex"
-              onClick={() => {
-                if (
-                  confirm(
-                    "Repor os dados transcritos do documento de Agosto 2026? Alterações deste mês serão substituídas.",
-                  )
-                ) {
-                  restoreAgosto();
-                  toast.success("Agosto 2026 restaurado a partir do documento.");
-                }
-              }}
-            >
-              <RotateCcw />
-              Repor Agosto
-            </Button>
-          )}
           <Button variant="secondary" onClick={() => window.print()}>
             <Printer />
             <span className="hidden sm:inline">Imprimir</span>

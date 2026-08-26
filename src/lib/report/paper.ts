@@ -98,6 +98,7 @@ export const FORM_CODE = "Mod.URGPE.03_01";
 export const APP_NAME = "Relatório CE";
 export const APP_HEADLINE = "Coordenação de Enfermagem";
 export const PUBLISHED_ORIGIN = "https://cenfermagempeniche.netlify.app";
+export const ADMIN_EMAIL_HINT = "ce.peniche@ulso.min-saude.pt";
 export const ORG_LOGO = "/uls-oeste-logo.png";
 export const ORG_MARK = "/uls-oeste-mark.png";
 export const ORG_LOGO_ALT = "Unidade Local de Saúde Oeste";

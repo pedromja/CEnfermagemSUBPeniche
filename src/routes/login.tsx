@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { MiniField } from "@/components/field-row";
 import { authClient, authEnabled } from "@/lib/auth/client";
 import { getSetupNeeded } from "@/lib/access/functions";
+import { ADMIN_EMAIL_HINT } from "@/lib/report/paper";
 
 export const Route = createFileRoute("/login")({
   loader: () => getSetupNeeded(),
@@ -16,7 +17,7 @@ function Login() {
   const { setupNeeded } = Route.useLoaderData();
   const navigate = useNavigate();
   const [name, setName] = useState("Administrador");
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(ADMIN_EMAIL_HINT);
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [busy, setBusy] = useState(false);
@@ -91,6 +92,7 @@ function Login() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             autoComplete="username"
+            placeholder={ADMIN_EMAIL_HINT}
             required
           />
         </MiniField>
