@@ -132,13 +132,13 @@ function Login() {
         </div>
       )}
 
+      {(setupNeeded || papel !== "equipa") && (
       <p className="text-sm text-muted">
         {setupNeeded
           ? "Primeiro acesso: crie a conta de quem gere a lista de IP autorizados."
-          : papel === "equipa"
-            ? "Conta comum da equipa (subpeniche) para preencher o relatório no telemóvel. Só o dia de hoje e o de amanhã se preenchem; os 3 dias anteriores só se consultam. Não dá acesso à Administração."
-            : "A equipa entra automaticamente na rede do serviço. Este login é só para o administrador."}
+          : "A equipa entra automaticamente na rede do serviço. Este login é só para o administrador."}
       </p>
+      )}
 
       {papel === "equipa" && !setupNeeded ? (
         <form className="space-y-3" onSubmit={onGuestSubmit}>
