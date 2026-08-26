@@ -18,7 +18,7 @@ export const Route = createRootRoute({
       },
       { name: "theme-color", content: "#007a33" },
       { name: "apple-mobile-web-app-capable", content: "yes" },
-      { name: "apple-mobile-web-app-title", content: "SUB Peniche" },
+      { name: "apple-mobile-web-app-title", content: "CE Peniche" },
       { name: "mobile-web-app-capable", content: "yes" },
     ],
     links: [

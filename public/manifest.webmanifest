@@ -1,13 +1,13 @@
 {
   "id": "/",
-  "name": "Relatório CE · SUB Peniche",
-  "short_name": "SUB Peniche",
+  "name": "CE Peniche",
+  "short_name": "CE Peniche",
   "description": "Relatório diário do coordenador de enfermagem — SUB Peniche, ULS Oeste.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#f4f0e6",
+  "background_color": "#ffffff",
   "theme_color": "#007a33",
   "lang": "pt-PT",
   "icons": [
