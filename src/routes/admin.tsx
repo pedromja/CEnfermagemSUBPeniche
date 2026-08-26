@@ -34,6 +34,9 @@ export const Route = createFileRoute("/admin")({
     return { user };
   },
   loader: async () => {
+    await import("@/lib/backup/server")
+      .then((m) => m.maybeAutoBackup())
+      .catch((err) => console.error("[backup] automático:", err));
     const [access, log, backups] = await Promise.all([
       getAccessState(),
       listAuditLog().catch(() => [] as AuditRow[]),
@@ -253,8 +256,9 @@ function AdminPage() {
           </div>
           {backups.length === 0 ? (
             <p className="mt-4 rounded-md bg-sunken px-3 py-3 text-sm text-muted">
-              Ainda não há cópias. A primeira é criada automaticamente após 48
-              horas de uso, ou agora com o botão.
+              Ainda não há cópias. Use «Criar cópia agora» ou volte a esta
+              página — a primeira é criada automaticamente e depois de 48 em 48
+              horas. As cópias com mais de 40 dias são apagadas.
             </p>
           ) : (
             <div className="mt-4 overflow-x-auto">
