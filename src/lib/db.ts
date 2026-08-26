@@ -223,6 +223,13 @@ export async function persistDb(): Promise<void> {
   await flushPgliteDump(pg);
 }
 
+export function resetPgliteCache(): void {
+  globalRef.__pgliteInstance__ = undefined;
+  globalRef.__pgSqlPromise__ = undefined;
+  globalRef.__pgliteMigrateChain__ = undefined;
+  sqlPromise = null;
+}
+
 /**
  * The shared PGLite instance (preview only), with `migrations/*.sql` applied.
  * Lets Better Auth persist to the SAME embedded DB as app data in preview (via a

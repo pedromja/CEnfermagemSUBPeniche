@@ -9,6 +9,13 @@ import { UserButton } from "@/lib/auth/gates";
 import { getAccessState, saveAccessPolicy } from "@/lib/access/functions";
 import { listAuditLog } from "@/lib/audit/functions";
 import type { AuditRow } from "@/lib/audit/types";
+import {
+  createSiteBackup,
+  downloadSiteBackup,
+  listSiteBackups,
+  restoreSiteBackup,
+} from "@/lib/backup/functions";
+import type { BackupMeta } from "@/lib/backup/types";
 import { ORG_SHORT, SITE_SHORT } from "@/lib/report/paper";
 import { formatPtDate } from "@/lib/report/model";
 import { MONTH_NAMES } from "@/lib/report/types";
@@ -27,11 +34,12 @@ export const Route = createFileRoute("/admin")({
     return { user };
   },
   loader: async () => {
-    const [access, log] = await Promise.all([
+    const [access, log, backups] = await Promise.all([
       getAccessState(),
       listAuditLog().catch(() => [] as AuditRow[]),
+      listSiteBackups().catch(() => [] as BackupMeta[]),
     ]);
-    return { access, log };
+    return { access, log, backups };
   },
   component: AdminPage,
 });
@@ -62,10 +70,11 @@ function formatReportDay(value: string): string {
 }
 
 function AdminPage() {
-  const { access, log } = Route.useLoaderData();
+  const { access, log, backups } = Route.useLoaderData();
   const router = useRouter();
   const [allowedIps, setAllowedIps] = useState(access.allowedIps);
   const [busy, setBusy] = useState(false);
+  const [backupBusy, setBackupBusy] = useState<string | null>(null);
 
   const addThisIp = () => {
     const detected = (access.clientIps?.length ? access.clientIps : [access.clientIp]).filter(Boolean);
@@ -98,6 +107,59 @@ function AdminPage() {
       );
     } finally {
       setBusy(false);
+    }
+  };
+
+  const onCreateBackup = async () => {
+    setBackupBusy("create");
+    try {
+      await createSiteBackup();
+      toast.success("Cópia de segurança criada.");
+      await router.invalidate();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Não foi possível criar a cópia.");
+    } finally {
+      setBackupBusy(null);
+    }
+  };
+
+  const onRestoreBackup = async (id: string) => {
+    if (
+      !confirm(
+        "Repor esta cópia? Os dados actuais do site serão substituídos pelos desta cópia.",
+      )
+    ) {
+      return;
+    }
+    setBackupBusy(id);
+    try {
+      await restoreSiteBackup({ data: { id } });
+      toast.success("Cópia reposta. Recarregue a página se o relatório não actualizar.");
+      await router.invalidate();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Não foi possível repor a cópia.");
+    } finally {
+      setBackupBusy(null);
+    }
+  };
+
+  const onDownloadBackup = async (id: string, createdAt: string) => {
+    setBackupBusy(`dl-${id}`);
+    try {
+      const payload = await downloadSiteBackup({ data: { id } });
+      const blob = new Blob([JSON.stringify(payload, null, 2)], {
+        type: "application/json",
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `backup-sub-peniche-${createdAt.slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Não foi possível descarregar.");
+    } finally {
+      setBackupBusy(null);
     }
   };
 
@@ -169,6 +231,77 @@ function AdminPage() {
               </Button>
             </div>
           </form>
+        </section>
+
+        <section className="rounded-xl border border-border bg-surface p-5">
+          <h2 className="font-display text-lg font-semibold">
+            Cópias de segurança
+          </h2>
+          <p className="mt-1 text-sm text-muted">
+            Cópia automática a cada 48 horas. As cópias com mais de 40 dias são
+            apagadas. Só o administrador vê e repõe este histórico.
+          </p>
+          <div className="mt-4">
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={backupBusy !== null}
+              onClick={() => void onCreateBackup()}
+            >
+              {backupBusy === "create" ? "A criar…" : "Criar cópia agora"}
+            </Button>
+          </div>
+          {backups.length === 0 ? (
+            <p className="mt-4 rounded-md bg-sunken px-3 py-3 text-sm text-muted">
+              Ainda não há cópias. A primeira é criada automaticamente após 48
+              horas de uso, ou agora com o botão.
+            </p>
+          ) : (
+            <div className="mt-4 overflow-x-auto">
+              <table className="w-full min-w-[36rem] border-collapse text-left text-sm">
+                <thead>
+                  <tr className="border-b border-line text-xs font-medium uppercase tracking-wide text-muted">
+                    <th className="py-2 pr-3 font-medium">Quando</th>
+                    <th className="py-2 pr-3 font-medium">Tipo</th>
+                    <th className="py-2 font-medium">Acções</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {backups.map((row) => (
+                    <tr key={row.id} className="border-b border-line/80">
+                      <td className="py-2.5 pr-3 tabular-nums">
+                        {formatWhen(row.createdAt)}
+                      </td>
+                      <td className="py-2.5 pr-3">
+                        {row.reason === "auto" ? "Automática" : "Manual"}
+                      </td>
+                      <td className="py-2.5">
+                        <div className="flex flex-wrap gap-2">
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            size="sm"
+                            disabled={backupBusy !== null}
+                            onClick={() => void onDownloadBackup(row.id, row.createdAt)}
+                          >
+                            Descarregar
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            disabled={backupBusy !== null}
+                            onClick={() => void onRestoreBackup(row.id)}
+                          >
+                            Repor
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </section>
 
         <section className="rounded-xl border border-border bg-surface p-5">

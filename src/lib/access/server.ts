@@ -74,6 +74,10 @@ export async function adminExists(): Promise<boolean> {
 }
 
 export async function readAccessState(): Promise<AccessState> {
+  void import("@/lib/backup/server")
+    .then((m) => m.maybeAutoBackup())
+    .catch((err) => console.error("[backup] automático:", err));
+
   const preview = isPreviewHost();
   const ips = clientIps();
   const ip = ips[0] ?? clientIp();

@@ -1,7 +1,7 @@
 import type { PGlite } from "@electric-sql/pglite";
 
-const STORE = "relatorio-ce";
-const DUMP_KEY = "pglite-dump";
+export const BLOB_STORE = "relatorio-ce";
+export const DUMP_KEY = "pglite-dump";
 
 function blobsEnabled(): boolean {
   return Boolean(
@@ -11,11 +11,11 @@ function blobsEnabled(): boolean {
   );
 }
 
-async function blobStore() {
+export async function getBlobStore() {
   if (!blobsEnabled()) return null;
   try {
     const { getStore } = await import("@netlify/blobs");
-    return getStore(STORE);
+    return getStore(BLOB_STORE);
   } catch (err) {
     console.error("[persist] Netlify Blobs indisponível:", err);
     return null;
@@ -23,7 +23,7 @@ async function blobStore() {
 }
 
 export async function loadPgliteDump(): Promise<Blob | undefined> {
-  const store = await blobStore();
+  const store = await getBlobStore();
   if (!store) return undefined;
   try {
     const blob = await store.get(DUMP_KEY, { type: "blob" });
@@ -35,7 +35,7 @@ export async function loadPgliteDump(): Promise<Blob | undefined> {
 }
 
 export async function savePgliteDump(pg: PGlite): Promise<void> {
-  const store = await blobStore();
+  const store = await getBlobStore();
   if (!store) return;
   const dump = await pg.dumpDataDir("gzip");
   await store.set(DUMP_KEY, dump);
@@ -70,7 +70,7 @@ export async function flushPgliteDump(pg: PGlite): Promise<void> {
 }
 
 export async function loadJsonBlob<T>(key: string): Promise<T | null> {
-  const store = await blobStore();
+  const store = await getBlobStore();
   if (!store) return null;
   try {
     const value = await store.get(key, { type: "json" });
@@ -82,7 +82,7 @@ export async function loadJsonBlob<T>(key: string): Promise<T | null> {
 }
 
 export async function saveJsonBlob(key: string, value: unknown): Promise<void> {
-  const store = await blobStore();
+  const store = await getBlobStore();
   if (!store) return;
   await store.setJSON(key, value);
 }
