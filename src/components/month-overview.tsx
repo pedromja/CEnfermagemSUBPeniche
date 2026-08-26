@@ -40,6 +40,7 @@ import {
 } from "@/lib/report/types";
 import { ORG_SHORT, SITE_PHOTO, SITE_PHOTO_ALT, SITE_SHORT } from "@/lib/report/paper";
 import { cn } from "@/lib/utils";
+import { guestCanFill, guestCanView } from "@/lib/report/guest-window";
 
 const KPI_CARDS: {
   id: KpiId;
@@ -107,7 +108,7 @@ function hashKpi(): KpiId | null {
   return isKpiId(id) ? id : null;
 }
 
-export function MonthOverview() {
+export function MonthOverview({ guest = false }: { guest?: boolean }) {
   const year = useReportStore((s) => s.year);
   const month = useReportStore((s) => s.month);
   const days = useMonthDays();
@@ -160,13 +161,15 @@ export function MonthOverview() {
               {MONTH_NAMES[month - 1]} {year}
             </h1>
             <p className="mt-1 max-w-xl text-sm text-accent-fg/85">
-              Relatório do coordenador de enfermagem. Cada indicador liga aos
-              turnos correspondentes; cada dia é um separador, como no Excel.
+              {guest
+                ? "Conta da equipa: preencha o dia de hoje ou o de amanhã. Os 3 dias anteriores estão só para consulta."
+                : "Relatório do coordenador de enfermagem. Cada indicador liga aos turnos correspondentes; cada dia é um separador, como no Excel."}
             </p>
           </div>
         </div>
       </header>
 
+      {!guest && (
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:gap-3">
         {KPI_CARDS.map((k) => {
           const alert = k.alert?.(stats) ?? false;
@@ -206,8 +209,9 @@ export function MonthOverview() {
           );
         })}
       </div>
+      )}
 
-      {filter && activeCard && (
+      {!guest && filter && activeCard && (
         <section
           id={filter}
           className="scroll-mt-4 overflow-hidden rounded-xl border border-border bg-surface"
@@ -297,21 +301,26 @@ export function MonthOverview() {
           {Array.from({ length: n }, (_, i) => {
             const day = i + 1;
             const date = isoDate(year, month, day);
-            const report = days[date];
+            const visible = !guest || guestCanView(date);
+            const fillable = !guest || guestCanFill(date);
+            const report = visible ? days[date] : undefined;
             const status = dayStatus(report);
             const alert = dayHasAlert(report);
-            const marked = hitDays.has(day);
+            const marked = visible && hitDays.has(day);
             return (
               <a
                 key={date}
-                href={`#dia-${day}`}
+                href={visible ? `#dia-${day}` : undefined}
                 onClick={(e) => {
                   e.preventDefault();
+                  if (!visible) return;
                   setSheet(day);
                 }}
                 className={cn(
-                  "flex min-h-16 flex-col items-start gap-1 overflow-hidden bg-surface px-1.5 py-2 text-left hover:bg-accent-soft sm:px-2",
+                  "flex min-h-16 flex-col items-start gap-1 overflow-hidden bg-surface px-1.5 py-2 text-left sm:px-2",
+                  visible ? "hover:bg-accent-soft" : "cursor-not-allowed opacity-25",
                   marked && "bg-accent-soft",
+                  visible && !fillable && guest && "bg-sunken/60",
                 )}
               >
                 <span className="flex w-full items-center justify-between">

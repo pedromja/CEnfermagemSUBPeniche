@@ -68,6 +68,12 @@ export function AppHeader({ access }: { access?: AccessState }) {
         </div>
 
         <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+          {guest ? (
+            <div className="min-w-28 px-2 text-center sm:min-w-36">
+              <p className="text-sm font-medium">{MONTH_NAMES[month - 1]}</p>
+              <p className="text-xs tabular-nums text-muted">{year}</p>
+            </div>
+          ) : (
           <div className="flex items-center gap-1 rounded-lg border border-border bg-sunken p-0.5">
             <Button variant="ghost" size="icon" className="size-10" onClick={prev} aria-label="Mês anterior">
               <ChevronLeft />
@@ -80,7 +86,10 @@ export function AppHeader({ access }: { access?: AccessState }) {
               <ChevronRight />
             </Button>
           </div>
+          )}
 
+          {!guest && (
+          <>
           <Button variant="secondary" onClick={() => window.print()}>
             <Printer />
             <span className="hidden sm:inline">Imprimir</span>
@@ -90,6 +99,8 @@ export function AppHeader({ access }: { access?: AccessState }) {
             <span className="hidden sm:inline">Excel do mês</span>
             <span className="sm:hidden">Excel</span>
           </Button>
+          </>
+          )}
           {isPending ? (
             <span className="size-10 shrink-0 rounded-md bg-sunken" />
           ) : user ? (

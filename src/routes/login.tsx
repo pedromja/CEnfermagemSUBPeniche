@@ -7,6 +7,7 @@ import { MiniField } from "@/components/field-row";
 import { authClient, authEnabled } from "@/lib/auth/client";
 import { getSetupNeeded, signInGuest } from "@/lib/access/functions";
 import { ADMIN_EMAIL_HINT } from "@/lib/report/paper";
+import { GUEST_PASSWORD, GUEST_USERNAME } from "@/lib/access/guest-credentials";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/login")({
@@ -21,6 +22,8 @@ function Login() {
   const [name, setName] = useState("Administrador");
   const [email, setEmail] = useState(ADMIN_EMAIL_HINT);
   const [password, setPassword] = useState("");
+  const [guestUser, setGuestUser] = useState(GUEST_USERNAME);
+  const [guestPass, setGuestPass] = useState(GUEST_PASSWORD);
   const [confirm, setConfirm] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -73,13 +76,13 @@ function Login() {
   const onGuestSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    if (password.length < 8) {
+    if (guestPass.length < 8) {
       setError("A palavra-passe deve ter pelo menos 8 caracteres.");
       return;
     }
     setBusy(true);
     try {
-      await signInGuest({ data: { password } });
+      await signInGuest({ data: { username: guestUser, password: guestPass } });
       window.location.assign("/");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Não foi possível entrar.");
@@ -133,17 +136,25 @@ function Login() {
         {setupNeeded
           ? "Primeiro acesso: crie a conta de quem gere a lista de IP autorizados."
           : papel === "equipa"
-            ? "Palavra-passe comum da equipa, para preencher o relatório no telemóvel fora da rede do serviço. Não dá acesso à Administração."
+            ? "Conta comum da equipa (subpeniche) para preencher o relatório no telemóvel. Só o dia de hoje e o de amanhã se preenchem; os 3 dias anteriores só se consultam. Não dá acesso à Administração."
             : "A equipa entra automaticamente na rede do serviço. Este login é só para o administrador."}
       </p>
 
       {papel === "equipa" && !setupNeeded ? (
         <form className="space-y-3" onSubmit={onGuestSubmit}>
-          <MiniField label="Palavra-passe da equipa">
+          <MiniField label="Utilizador">
+            <Input
+              value={guestUser}
+              onChange={(e) => setGuestUser(e.target.value)}
+              autoComplete="username"
+              required
+            />
+          </MiniField>
+          <MiniField label="Palavra-passe">
             <Input
               type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              value={guestPass}
+              onChange={(e) => setGuestPass(e.target.value)}
               autoComplete="current-password"
               required
               minLength={8}

@@ -10,8 +10,9 @@ import {
   weekdayIndex,
 } from "@/lib/report/model";
 import { WEEKDAYS_SHORT } from "@/lib/report/types";
+import { guestCanFill, guestCanView } from "@/lib/report/guest-window";
 
-export function SheetTabs() {
+export function SheetTabs({ guest = false }: { guest?: boolean }) {
   const year = useReportStore((s) => s.year);
   const month = useReportStore((s) => s.month);
   const sheet = useReportStore((s) => s.sheet);
@@ -55,8 +56,10 @@ export function SheetTabs() {
         {Array.from({ length: n }, (_, i) => {
           const day = i + 1;
           const date = isoDate(year, month, day);
-          const status = dayStatus(days[date]);
-          const alert = dayHasAlert(days[date]);
+          const visible = !guest || guestCanView(date);
+          const fillable = !guest || guestCanFill(date);
+          const status = visible ? dayStatus(days[date]) : "empty";
+          const alert = visible && dayHasAlert(days[date]);
           const active = sheet === day;
           const wd = WEEKDAYS_SHORT[weekdayIndex(year, month, day)];
           return (
@@ -64,9 +67,15 @@ export function SheetTabs() {
               key={day}
               type="button"
               ref={active ? activeRef : undefined}
-              onClick={() => setSheet(day)}
+              disabled={!visible}
+              onClick={() => {
+                if (!visible) return;
+                setSheet(day);
+              }}
               className={cn(
                 "flex h-11 min-w-11 shrink-0 flex-col items-center justify-center rounded-t-md border border-b-0 px-2 leading-none lg:h-12 lg:min-w-12 lg:px-2.5",
+                !visible && "cursor-not-allowed opacity-30",
+                visible && !fillable && "opacity-80",
                 active
                   ? "border-border bg-surface text-ink"
                   : "border-transparent bg-sunken/70 text-muted hover:bg-sunken",

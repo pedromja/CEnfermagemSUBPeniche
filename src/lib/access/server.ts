@@ -77,7 +77,7 @@ export async function readAccessState(): Promise<AccessState> {
   const setupNeeded = !(await adminExists());
   const settings = await ensureSettings();
   const admin = Boolean(await getSessionUser());
-  const guestEnabled = await guestPasswordIsSet();
+  const guestEnabled = guestPasswordIsSet();
   const guest = !admin && hasGuestSession();
   const hasList = Boolean(settings.allowed_ips.trim());
 

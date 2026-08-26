@@ -28,15 +28,11 @@ export const saveAccessPolicy = createServerFn({ method: "POST" })
   });
 
 export const signInGuest = createServerFn({ method: "POST" })
-  .validator((input: { password: string }) => input)
+  .validator((input: { username: string; password: string }) => input)
   .handler(async ({ data }) => {
-    const { verifyGuestPassword, writeGuestSession, guestPasswordIsSet } =
-      await import("./guest.server");
-    if (!(await guestPasswordIsSet())) {
-      throw new Error("A conta de equipa ainda não foi definida pelo administrador.");
-    }
-    if (!(await verifyGuestPassword(data.password))) {
-      throw new Error("Palavra-passe incorrecta.");
+    const { verifyGuestLogin, writeGuestSession } = await import("./guest.server");
+    if (!verifyGuestLogin(data.username, data.password)) {
+      throw new Error("Utilizador ou palavra-passe incorrectos.");
     }
     writeGuestSession();
     const { readAccessState } = await import("./server");
@@ -51,12 +47,3 @@ export const signOutGuest = createServerFn({ method: "POST" }).handler(
   },
 );
 
-export const saveGuestPassword = createServerFn({ method: "POST" })
-  .middleware([authMiddleware])
-  .validator((input: { password: string }) => input)
-  .handler(async ({ data }) => {
-    const { saveGuestPassword: save } = await import("./guest.server");
-    await save(data.password);
-    const { readAccessState } = await import("./server");
-    return readAccessState();
-  });

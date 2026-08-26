@@ -15,7 +15,15 @@ import {
 import { SHIFT_ORDER, WEEKDAYS_LONG, type ShiftId } from "@/lib/report/types";
 import { ORG_SHORT, SITE_SHORT } from "@/lib/report/paper";
 
-export function DaySheet({ day }: { day: number }) {
+export function DaySheet({
+  day,
+  guest = false,
+  readOnly = false,
+}: {
+  day: number;
+  guest?: boolean;
+  readOnly?: boolean;
+}) {
   const year = useReportStore((s) => s.year);
   const month = useReportStore((s) => s.month);
   const staff = useReportStore((s) => s.staff);
@@ -40,17 +48,26 @@ export function DaySheet({ day }: { day: number }) {
           <h1 className="font-display text-3xl font-semibold tracking-tight text-ink lg:text-4xl">
             {formatPtDate(date)}
           </h1>
-          <p className="text-sm text-muted">Folha diária · {weekday}</p>
+          <p className="text-sm text-muted">
+            Folha diária · {weekday}
+            {guest && readOnly
+              ? " · só consulta (a equipa só preenche hoje ou amanhã)"
+              : guest
+                ? " · preenchimento da equipa"
+                : ""}
+          </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Button
-            variant={folha ? "default" : "secondary"}
+            variant={folha || readOnly ? "default" : "secondary"}
             size="sm"
             onClick={() => setFolha((v) => !v)}
+            disabled={readOnly}
           >
-            {folha ? <Pencil /> : <FileText />}
-            {folha ? "Editar campos" : "Vista de folha"}
+            {folha || readOnly ? <FileText /> : <Pencil />}
+            {readOnly ? "Só consulta" : folha ? "Editar campos" : "Vista de folha"}
           </Button>
+          {!readOnly && (
           <Button
             variant="ghost"
             size="sm"
@@ -62,10 +79,11 @@ export function DaySheet({ day }: { day: number }) {
             <Eraser />
             Limpar dia
           </Button>
+          )}
         </div>
       </header>
 
-      {folha ? (
+      {folha || readOnly ? (
         <div className="paper-preview-stage no-print sm:rounded-xl">
           <PaperForm report={report} />
         </div>
@@ -77,10 +95,14 @@ export function DaySheet({ day }: { day: number }) {
               shift={shift}
               value={report[shift]}
               staff={staff}
-              onChange={(patch) => patchShift(date, shift, patch)}
-              onBlurStaff={() =>
-                rememberStaff(report[shift].coordenador, report[shift].nMec)
-              }
+              onChange={(patch) => {
+                if (readOnly) return;
+                patchShift(date, shift, patch);
+              }}
+              onBlurStaff={() => {
+                if (readOnly) return;
+                rememberStaff(report[shift].coordenador, report[shift].nMec);
+              }}
             />
           ))}
 
@@ -105,7 +127,10 @@ export function DaySheet({ day }: { day: number }) {
                         ? report.ocorrenciasManha
                         : report.ocorrenciasTarde
                   }
-                  onChange={(text) => patchOcorrencia(date, shift, text)}
+                  onChange={(text) => {
+                    if (readOnly) return;
+                    patchOcorrencia(date, shift, text);
+                  }}
                 />
               ))}
             </div>

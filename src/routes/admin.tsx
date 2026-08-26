@@ -3,11 +3,10 @@ import { createFileRoute, redirect, useRouter } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { MiniField } from "@/components/field-row";
 import { UserButton } from "@/lib/auth/gates";
-import { getAccessState, saveAccessPolicy, saveGuestPassword } from "@/lib/access/functions";
+import { getAccessState, saveAccessPolicy } from "@/lib/access/functions";
 import { listAuditLog } from "@/lib/audit/functions";
 import type { AuditRow } from "@/lib/audit/types";
 import {
@@ -18,6 +17,7 @@ import {
 } from "@/lib/backup/functions";
 import type { BackupMeta } from "@/lib/backup/types";
 import { ORG_SHORT, SITE_SHORT } from "@/lib/report/paper";
+import { GUEST_PASSWORD, GUEST_USERNAME } from "@/lib/access/guest-credentials";
 import { formatPtDate } from "@/lib/report/model";
 import { MONTH_NAMES } from "@/lib/report/types";
 import { OrgBanner } from "@/components/org-banner";
@@ -79,9 +79,6 @@ function AdminPage() {
   const [allowedIps, setAllowedIps] = useState(access.allowedIps);
   const [busy, setBusy] = useState(false);
   const [backupBusy, setBackupBusy] = useState<string | null>(null);
-  const [guestPassword, setGuestPassword] = useState("");
-  const [guestConfirm, setGuestConfirm] = useState("");
-  const [guestBusy, setGuestBusy] = useState(false);
 
   const addThisIp = () => {
     const detected = (access.clientIps?.length ? access.clientIps : [access.clientIp]).filter(Boolean);
@@ -114,30 +111,6 @@ function AdminPage() {
       );
     } finally {
       setBusy(false);
-    }
-  };
-
-  const onSaveGuest = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (guestPassword.length < 8) {
-      toast.error("A palavra-passe da equipa deve ter pelo menos 8 caracteres.");
-      return;
-    }
-    if (guestPassword !== guestConfirm) {
-      toast.error("As palavras-passe não coincidem.");
-      return;
-    }
-    setGuestBusy(true);
-    try {
-      await saveGuestPassword({ data: { password: guestPassword } });
-      setGuestPassword("");
-      setGuestConfirm("");
-      toast.success("Palavra-passe da equipa guardada.");
-      await router.invalidate();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Não foi possível guardar.");
-    } finally {
-      setGuestBusy(false);
     }
   };
 
@@ -267,42 +240,20 @@ function AdminPage() {
         <section className="rounded-xl border border-border bg-surface p-5">
           <h2 className="font-display text-lg font-semibold">Conta da equipa</h2>
           <p className="mt-1 text-sm text-muted">
-            Palavra-passe única para os enfermeiros preencherem o relatório no
-            telemóvel (PWA), fora da rede do serviço. Não abre a Administração,
-            as cópias de segurança nem o diário de acções.
-            {access.guestEnabled
-              ? " A conta já está activa; definir de novo substitui a palavra-passe."
-              : " Ainda não está definida."}
+            Credenciais fixas, conhecidas de todos os enfermeiros. No telemóvel
+            só preenchem o dia de hoje ou o seguinte e só vêem os 3 dias
+            anteriores. Não abrem a Administração.
           </p>
-          <form className="mt-4 space-y-3" onSubmit={onSaveGuest}>
-            <MiniField label="Nova palavra-passe">
-              <Input
-                type="password"
-                value={guestPassword}
-                onChange={(e) => setGuestPassword(e.target.value)}
-                autoComplete="new-password"
-                minLength={8}
-                required
-              />
-            </MiniField>
-            <MiniField label="Confirmar palavra-passe">
-              <Input
-                type="password"
-                value={guestConfirm}
-                onChange={(e) => setGuestConfirm(e.target.value)}
-                autoComplete="new-password"
-                minLength={8}
-                required
-              />
-            </MiniField>
-            <Button type="submit" disabled={guestBusy}>
-              {guestBusy
-                ? "A guardar…"
-                : access.guestEnabled
-                  ? "Actualizar palavra-passe da equipa"
-                  : "Activar conta da equipa"}
-            </Button>
-          </form>
+          <dl className="mt-4 grid gap-2 rounded-md bg-sunken px-3 py-3 text-sm">
+            <div className="flex justify-between gap-3">
+              <dt className="text-muted">Utilizador</dt>
+              <dd className="font-medium tabular-nums">{GUEST_USERNAME}</dd>
+            </div>
+            <div className="flex justify-between gap-3">
+              <dt className="text-muted">Palavra-passe</dt>
+              <dd className="font-medium tabular-nums">{GUEST_PASSWORD}</dd>
+            </div>
+          </dl>
         </section>
 
         <section className="rounded-xl border border-border bg-surface p-5">
