@@ -40,10 +40,24 @@ writeFileSync(join(assetsOut, ".assetsignore"), "\n");
 writeFileSync(join(dist, ".assetsignore"), "_worker.js\ncf-assets\n");
 
 const ssrPath = join(dist, "_worker.js/_ssr/ssr.mjs");
-writeFileSync(
-  ssrPath,
-  readFileSync(ssrPath, "utf8").replace(", ssr_exports as p", ""),
+let ssr = readFileSync(ssrPath, "utf8");
+if (!ssr.includes("const ssr_exports")) {
+  ssr = ssr.replace("export {", "const ssr_exports = {};\nexport {");
+}
+writeFileSync(ssrPath, ssr);
+
+const ssr2Path = join(dist, "_worker.js/_ssr/ssr2.mjs");
+let ssr2 = readFileSync(ssr2Path, "utf8");
+ssr2 = ssr2.replace(
+  `import { m as __exportAll$1 } from "./ssr.mjs";\n`,
+  `var __exportAll$1 = (all) => {
+	const target = {};
+	for (const name in all) Object.defineProperty(target, name, { get: all[name], enumerable: true });
+	return target;
+};
+`,
 );
+writeFileSync(ssr2Path, ssr2);
 
 const vars = {};
 for (const key of [
