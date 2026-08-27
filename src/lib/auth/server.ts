@@ -123,6 +123,8 @@ const LOCAL_DEV_ORIGINS: string[] = [
   "http://[::1]:8080",
 ];
 const PUBLISHED_HOSTS: string[] = [
+  "cesubpeniche.dev",
+  "www.cesubpeniche.dev",
   "cenfermagempeniche.netlify.app",
   "cenfermagemsubpeniche.pedromja.workers.dev",
   "*.netlify.app",
@@ -130,6 +132,8 @@ const PUBLISHED_HOSTS: string[] = [
   "*.workers.dev",
 ];
 const PUBLISHED_ORIGINS: string[] = [
+  "https://cesubpeniche.dev",
+  "https://www.cesubpeniche.dev",
   "https://cenfermagempeniche.netlify.app",
   "https://cenfermagemsubpeniche.pedromja.workers.dev",
   "https://*.netlify.app",
