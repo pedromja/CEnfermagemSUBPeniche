@@ -5,18 +5,18 @@ export type DbSource = "neon" | "pglite";
 
 // An empty/whitespace DATABASE_URL (an easy misconfig in deploy UIs) must mean
 // "unset" — otherwise production would silently run on the PGLite fallback.
-const rawDatabaseUrl =
-  typeof process !== "undefined" ? process.env.DATABASE_URL : undefined;
-const databaseUrl =
-  rawDatabaseUrl && rawDatabaseUrl.trim() ? rawDatabaseUrl : undefined;
+function getDatabaseUrl(): string | undefined {
+  const raw =
+    typeof process !== "undefined" ? process.env.DATABASE_URL : undefined;
+  return raw && raw.trim() ? raw.trim() : undefined;
+}
 
-/**
- * Active backend: real **Neon** when `DATABASE_URL` is set (deployed / configured
- * sandbox), otherwise a local embedded **PGLite** (Postgres compiled to WASM) so
- * the app has a working database even with nothing configured — the live preview
- * included. Swap in Neon later by just setting `DATABASE_URL`; no code changes.
- */
-export const dbSource: DbSource = databaseUrl ? "neon" : "pglite";
+export function getDbSource(): DbSource {
+  return getDatabaseUrl() ? "neon" : "pglite";
+}
+
+/** Snapshot at import — prefer `getDbSource()` on Cloudflare. */
+export const dbSource: DbSource = getDbSource();
 
 function runningOnCloudflare(): boolean {
   if (process.env.CF_PAGES || process.env.NITRO_PRESET === "cloudflare-pages") {
@@ -103,8 +103,8 @@ function createNeonSql(): Promise<Sql> {
   globalRef.__pgSqlPromise__ ??= (async () => {
     if (runningOnCloudflare()) {
       const { neon } = await import("@neondatabase/serverless");
-      if (!databaseUrl) throw new Error("DATABASE_URL em falta");
-      const http = neon(databaseUrl);
+      if (!getDatabaseUrl()) throw new Error("DATABASE_URL em falta");
+      const http = neon(getDatabaseUrl()!);
       return toSql(async <T>(text: string, params: unknown[]) => {
         const rows = await http.query(text, params);
         return rows as T[];
@@ -114,7 +114,7 @@ function createNeonSql(): Promise<Sql> {
     types.setTypeParser(OID_INT8, Number);
     types.setTypeParser(OID_DATE, identity);
     types.setTypeParser(OID_INTERVAL, identity);
-    const pool = new Pool({ connectionString: databaseUrl });
+    const pool = new Pool({ connectionString: getDatabaseUrl() });
     return toSql(async <T>(text: string, params: unknown[]) => {
       const res = await pool.query(text, params);
       return res.rows as T[];
@@ -218,7 +218,11 @@ async function createSql(): Promise<Sql> {
         "or a server route loader, never from client code.",
     );
   }
-  return dbSource === "neon" ? createNeonSql() : createPgliteSql();
+  if (getDbSource() === "neon") return createNeonSql();
+  if (runningOnCloudflare()) {
+    throw new Error("DATABASE_URL em falta no Worker da Cloudflare");
+  }
+  return createPgliteSql();
 }
 
 /**
@@ -286,7 +290,11 @@ export function ensureDbReady(): Promise<void> {
 const globalBoot = globalThis as typeof globalThis & {
   __pgBootstrapPromise__?: Promise<void>;
 };
-if (typeof window === "undefined" && dbSource === "pglite") {
+if (
+  typeof window === "undefined" &&
+  dbSource === "pglite" &&
+  !runningOnCloudflare()
+) {
   globalBoot.__pgBootstrapPromise__ ??= ensureDbReady().catch((err) => {
     globalBoot.__pgBootstrapPromise__ = undefined;
     console.error("[db] PGLite bootstrap failed:", err);

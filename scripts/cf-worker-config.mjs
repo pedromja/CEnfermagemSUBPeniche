@@ -45,6 +45,20 @@ writeFileSync(
   readFileSync(ssrPath, "utf8").replace(", ssr_exports as p", ""),
 );
 
+const vars = {};
+for (const key of [
+  "DATABASE_URL",
+  "BETTER_AUTH_SECRET",
+  "BETTER_AUTH_URL",
+  "VITE_AUTH_ENABLED",
+]) {
+  const value = process.env[key];
+  if (value && value.trim()) vars[key] = value.trim();
+}
+vars.NITRO_PRESET = "cloudflare-pages";
+vars.CF_PAGES = "1";
+if (!vars.VITE_AUTH_ENABLED) vars.VITE_AUTH_ENABLED = "true";
+
 const path = join(dist, "_worker.js/wrangler.json");
 const current = JSON.parse(readFileSync(path, "utf8"));
 const next = {
@@ -60,6 +74,10 @@ const next = {
     directory: "../cf-assets",
     binding: "ASSETS",
   },
+  vars,
 };
 writeFileSync(path, `${JSON.stringify(next, null, 2)}\n`);
-console.log("[cf] wrangler.json e cf-assets preparados para wrangler deploy");
+console.log(
+  "[cf] wrangler.json com variáveis de execução:",
+  Object.keys(vars).join(", "),
+);

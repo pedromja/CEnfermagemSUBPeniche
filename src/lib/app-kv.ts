@@ -1,7 +1,7 @@
-import { dbSource, getSql } from "@/lib/db";
+import { getDbSource, getSql } from "@/lib/db";
 
 export async function loadJsonKv<T>(key: string): Promise<T | null> {
-  if (dbSource === "neon") {
+  if (getDbSource() === "neon") {
     const sql = await getSql();
     const rows = await sql<{ value: T }>`
       select value from app_kv where key = ${key}
@@ -13,7 +13,7 @@ export async function loadJsonKv<T>(key: string): Promise<T | null> {
 }
 
 export async function saveJsonKv(key: string, value: unknown): Promise<void> {
-  if (dbSource === "neon") {
+  if (getDbSource() === "neon") {
     const sql = await getSql();
     const encoded = JSON.stringify(value);
     await sql`
@@ -30,7 +30,7 @@ export async function saveJsonKv(key: string, value: unknown): Promise<void> {
 }
 
 export async function deleteJsonKv(key: string): Promise<void> {
-  if (dbSource === "neon") {
+  if (getDbSource() === "neon") {
     const sql = await getSql();
     await sql`delete from app_kv where key = ${key}`;
     return;
