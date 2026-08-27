@@ -42,7 +42,7 @@ writeFileSync(join(dist, ".assetsignore"), "_worker.js\ncf-assets\n");
 const path = join(dist, "_worker.js/wrangler.json");
 const current = JSON.parse(readFileSync(path, "utf8"));
 const next = {
-  name: process.env.CF_WORKER_NAME || current.name || "cenfermagemsubpeniche",
+  name: "cenfermagemsubpeniche",
   compatibility_date: current.compatibility_date || "2026-08-26",
   compatibility_flags: current.compatibility_flags || ["nodejs_compat"],
   main: "./index.js",
