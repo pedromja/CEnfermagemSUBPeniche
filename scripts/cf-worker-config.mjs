@@ -17,6 +17,10 @@ const next = {
   compatibility_date: current.compatibility_date || "2026-08-26",
   compatibility_flags: current.compatibility_flags || ["nodejs_compat"],
   main: "./index.js",
+  find_additional_modules: true,
+  rules: [
+    { type: "ESModule", globs: ["**/*.mjs", "**/*.js"] },
+  ],
   assets: {
     directory: "..",
     binding: "ASSETS",
