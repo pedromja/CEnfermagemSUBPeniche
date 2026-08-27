@@ -125,6 +125,7 @@ const LOCAL_DEV_ORIGINS: string[] = [
 const PUBLISHED_HOSTS: string[] = [
   "cesubpeniche.dev",
   "www.cesubpeniche.dev",
+  "cesubpeniche.pages.dev",
   "cenfermagempeniche.netlify.app",
   "cenfermagemsubpeniche.pedromja.workers.dev",
   "*.netlify.app",
@@ -134,6 +135,7 @@ const PUBLISHED_HOSTS: string[] = [
 const PUBLISHED_ORIGINS: string[] = [
   "https://cesubpeniche.dev",
   "https://www.cesubpeniche.dev",
+  "https://cesubpeniche.pages.dev",
   "https://cenfermagempeniche.netlify.app",
   "https://cenfermagemsubpeniche.pedromja.workers.dev",
   "https://*.netlify.app",
