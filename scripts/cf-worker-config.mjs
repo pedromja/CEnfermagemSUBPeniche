@@ -27,4 +27,8 @@ const next = {
   },
 };
 writeFileSync(path, `${JSON.stringify(next, null, 2)}\n`);
+writeFileSync(
+  join(root, "dist/.assetsignore"),
+  ["_worker.js", "_routes.json", "nitro.json", ".wrangler", "_headers", "_redirects"].join("\n") + "\n",
+);
 console.log("[cf] wrangler.json preparado para wrangler deploy");
