@@ -35,7 +35,7 @@ import { tanstackStartCookies } from "better-auth/tanstack-start";
 import { getCookie } from "@tanstack/react-start/server";
 import { randomBytes } from "node:crypto";
 import { Pool } from "pg";
-import { Pool as NeonPool } from "@neondatabase/serverless";
+import { neonConfig, Pool as NeonPool } from "@neondatabase/serverless";
 import { ensureDbReady, getPglite } from "../db";
 import { emailAndPasswordEnabled } from "./email-password";
 import { GATE_PROVIDER_ID, gateIdentitySessions } from "./gate-session.server";
@@ -194,6 +194,10 @@ function runningOnCloudflare(): boolean {
   } catch {
     return false;
   }
+}
+
+if (runningOnCloudflare()) {
+  neonConfig.poolQueryViaFetch = true;
 }
 
 const database = databaseUrl

@@ -102,9 +102,11 @@ function toSql(run: Run): Sql {
 function createNeonSql(): Promise<Sql> {
   globalRef.__pgSqlPromise__ ??= (async () => {
     if (runningOnCloudflare()) {
-      const { neon } = await import("@neondatabase/serverless");
-      if (!getDatabaseUrl()) throw new Error("DATABASE_URL em falta");
-      const http = neon(getDatabaseUrl()!);
+      const { neon, neonConfig } = await import("@neondatabase/serverless");
+      neonConfig.poolQueryViaFetch = true;
+      const url = getDatabaseUrl();
+      if (!url) throw new Error("DATABASE_URL em falta");
+      const http = neon(url);
       return toSql(async <T>(text: string, params: unknown[]) => {
         const rows = await http.query(text, params);
         return rows as T[];

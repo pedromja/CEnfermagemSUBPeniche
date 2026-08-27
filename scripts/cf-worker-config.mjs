@@ -77,6 +77,25 @@ const next = {
   vars,
 };
 writeFileSync(path, `${JSON.stringify(next, null, 2)}\n`);
+
+const indexPath = join(dist, "_worker.js/index.js");
+let entry = readFileSync(indexPath, "utf8");
+entry = entry.replace(
+  "unhandled: true\n			}",
+  "unhandled: true,\n				message: error && error.message ? String(error.message) : String(error),\n				stack: error && error.stack ? String(error.stack).slice(0, 2500) : \"\"\n			}",
+);
+entry = entry.replace(
+  "return nitroApp.fetch(cfReq);",
+  `if (env && typeof process !== "undefined" && process.env) {
+			for (const key of Object.keys(env)) {
+				const val = env[key];
+				if (typeof val === "string") process.env[key] = val;
+			}
+		}
+		return nitroApp.fetch(cfReq);`,
+);
+writeFileSync(indexPath, entry);
+
 console.log(
   "[cf] wrangler.json com variáveis de execução:",
   Object.keys(vars).join(", "),
