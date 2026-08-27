@@ -9,6 +9,7 @@
  */
 import {
   cpSync,
+  existsSync,
   mkdirSync,
   readdirSync,
   readFileSync,
@@ -40,30 +41,36 @@ writeFileSync(join(assetsOut, ".assetsignore"), "\n");
 writeFileSync(join(dist, ".assetsignore"), "_worker.js\ncf-assets\n");
 
 const ssrPath = join(dist, "_worker.js/_ssr/ssr.mjs");
-let ssr = readFileSync(ssrPath, "utf8");
-ssr = ssr.replace("ssr_exports as p", "server_default as p");
-writeFileSync(ssrPath, ssr);
+if (existsSync(ssrPath)) {
+  let ssr = readFileSync(ssrPath, "utf8");
+  ssr = ssr.replace("ssr_exports as p", "server_default as p");
+  writeFileSync(ssrPath, ssr);
+}
 
 const ssr2Path = join(dist, "_worker.js/_ssr/ssr2.mjs");
-let ssr2 = readFileSync(ssr2Path, "utf8");
-ssr2 = ssr2.replace(
-  `import { m as __exportAll$1 } from "./ssr.mjs";\n`,
-  `var __exportAll$1 = (all) => {
+if (existsSync(ssr2Path)) {
+  let ssr2 = readFileSync(ssr2Path, "utf8");
+  ssr2 = ssr2.replace(
+    `import { m as __exportAll$1 } from "./ssr.mjs";\n`,
+    `var __exportAll$1 = (all) => {
 	const target = {};
 	for (const name in all) Object.defineProperty(target, name, { get: all[name], enumerable: true });
 	return target;
 };
 `,
-);
-writeFileSync(ssr2Path, ssr2);
+  );
+  writeFileSync(ssr2Path, ssr2);
+}
 
 const rendererPath = join(dist, "_worker.js/_chunks/ssr-renderer.mjs");
-let renderer = readFileSync(rendererPath, "utf8");
-renderer = renderer.replace(
-  `import("../_ssr/ssr.mjs").then((n) => n.p)`,
-  `import("../_ssr/ssr.mjs")`,
-);
-writeFileSync(rendererPath, renderer);
+if (existsSync(rendererPath)) {
+  let renderer = readFileSync(rendererPath, "utf8");
+  renderer = renderer.replace(
+    `import("../_ssr/ssr.mjs").then((n) => n.p)`,
+    `import("../_ssr/ssr.mjs")`,
+  );
+  writeFileSync(rendererPath, renderer);
+}
 
 const vars = {};
 for (const key of [
