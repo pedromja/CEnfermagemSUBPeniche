@@ -36,7 +36,7 @@ import { getCookie } from "@tanstack/react-start/server";
 import { randomBytes } from "node:crypto";
 import { Pool } from "pg";
 import { neonConfig, Pool as NeonPool } from "@neondatabase/serverless";
-import { ensureDbReady, getPglite } from "../db";
+import { ensureDbReady, getPglite, getSql } from "../db";
 import { emailAndPasswordEnabled } from "./email-password";
 import { GATE_PROVIDER_ID, gateIdentitySessions } from "./gate-session.server";
 import { GROK_PROVIDERS } from "./providers";
@@ -273,6 +273,24 @@ export const auth = betterAuth({
 
   // Local email/password — toggled only via `./email-password` (not a plugin).
   ...(emailAndPasswordEnabled ? { emailAndPassword: { enabled: true } } : {}),
+
+  databaseHooks: {
+    user: {
+      create: {
+        before: async (user) => {
+          const email = String(user.email ?? "").trim().toLowerCase();
+          const sql = await getSql();
+          const rows = await sql<{ n: number }>`select count(*)::int as n from "user"`;
+          if ((rows[0]?.n ?? 0) === 0) return { data: user };
+          const { isInvitedAdminEmail } = await import("@/lib/access/admin-invites");
+          if (isInvitedAdminEmail(email)) return { data: user };
+          throw new Error(
+            "Este e-mail não está autorizado a criar conta de administrador.",
+          );
+        },
+      },
+    },
+  },
 
   // `__Host-` prefixed cookies: the browser REFUSES any same-named cookie that
   // carries a `Domain` attribute, so a sibling `*.grok.me` app cannot "toss" a

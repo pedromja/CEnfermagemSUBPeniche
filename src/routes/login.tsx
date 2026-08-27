@@ -8,6 +8,7 @@ import { authClient, authEnabled } from "@/lib/auth/client";
 import { getSetupNeeded, signInGuest } from "@/lib/access/functions";
 import { ADMIN_EMAIL_HINT } from "@/lib/report/paper";
 import { GUEST_PASSWORD, GUEST_USERNAME } from "@/lib/access/guest-credentials";
+import { invitedAdmin } from "@/lib/access/admin-invites";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/login")({
@@ -16,7 +17,7 @@ export const Route = createFileRoute("/login")({
 });
 
 function Login() {
-  const { setupNeeded } = Route.useLoaderData();
+  const { setupNeeded, pendingInvites } = Route.useLoaderData();
   const navigate = useNavigate();
   const [papel, setPapel] = useState<"admin" | "equipa">("admin");
   const [name, setName] = useState("Administrador");
@@ -27,6 +28,13 @@ function Login() {
   const [confirm, setConfirm] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const invite = invitedAdmin(email);
+  const firstAccess =
+    setupNeeded || pendingInvites.includes(email.trim().toLowerCase());
+
+  useEffect(() => {
+    if (invite) setName(invite.name);
+  }, [invite]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -42,7 +50,7 @@ function Login() {
       setError("O início de sessão não está activo.");
       return;
     }
-    if (setupNeeded && password !== confirm) {
+    if (firstAccess && password !== confirm) {
       setError("As palavras-passe não coincidem.");
       return;
     }
@@ -52,11 +60,11 @@ function Login() {
     }
     setBusy(true);
     try {
-      if (setupNeeded) {
+      if (firstAccess) {
         const created = await authClient.signUp.email({
           email: email.trim(),
           password,
-          name: name.trim() || "Administrador",
+          name: (invite?.name || name).trim() || "Administrador",
         });
         if (created.error) throw new Error(created.error.message);
       }
@@ -94,8 +102,10 @@ function Login() {
   return (
     <GateShell
       title={
-        setupNeeded
-          ? "Criar conta de administrador"
+        firstAccess
+          ? invite
+            ? "Definir palavra-passe de administrador"
+            : "Criar conta de administrador"
           : papel === "equipa"
             ? "Entrada da equipa"
             : "Entrada do administrador"
@@ -134,8 +144,10 @@ function Login() {
 
       {(setupNeeded || papel !== "equipa") && (
       <p className="text-sm text-muted">
-        {setupNeeded
-          ? "Primeiro acesso: crie a conta de quem gere a lista de IP autorizados."
+        {firstAccess
+          ? invite
+            ? "Primeiro acesso desta conta: defina a palavra-passe. Depois entra como administrador."
+            : "Primeiro acesso: crie a conta de quem gere a lista de IP autorizados."
           : "A equipa entra automaticamente na rede do serviço. Este login é só para o administrador."}
       </p>
       )}
@@ -167,7 +179,7 @@ function Login() {
         </form>
       ) : (
         <form className="space-y-3" onSubmit={onAdminSubmit}>
-          {setupNeeded && (
+          {firstAccess && (
             <MiniField label="Nome">
               <Input
                 value={name}
@@ -192,12 +204,12 @@ function Login() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              autoComplete={setupNeeded ? "new-password" : "current-password"}
+              autoComplete={firstAccess ? "new-password" : "current-password"}
               required
               minLength={8}
             />
           </MiniField>
-          {setupNeeded && (
+          {firstAccess && (
             <MiniField label="Confirmar palavra-passe">
               <Input
                 type="password"
@@ -213,8 +225,10 @@ function Login() {
           <Button type="submit" className="w-full" disabled={busy}>
             {busy
               ? "A guardar…"
-              : setupNeeded
-                ? "Criar administrador"
+              : firstAccess
+                ? invite
+                  ? "Definir palavra-passe e entrar"
+                  : "Criar administrador"
                 : "Entrar"}
           </Button>
         </form>

@@ -66,6 +66,14 @@ export async function adminExists(): Promise<boolean> {
   return (rows[0]?.n ?? 0) > 0;
 }
 
+export async function pendingAdminInvites(): Promise<string[]> {
+  const { INVITED_ADMINS, normalizeAdminEmail } = await import("./admin-invites");
+  const sql = await getSql();
+  const rows = await sql<{ email: string }>`select email from "user"`;
+  const existing = new Set(rows.map((row) => normalizeAdminEmail(row.email)));
+  return INVITED_ADMINS.map((row) => row.email).filter((email) => !existing.has(email));
+}
+
 export async function readAccessState(): Promise<AccessState> {
   void import("@/lib/backup/server")
     .then((m) => m.maybeAutoBackup())

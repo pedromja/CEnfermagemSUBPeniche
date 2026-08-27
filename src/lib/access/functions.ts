@@ -10,8 +10,11 @@ export const getAccessState = createServerFn({ method: "GET" }).handler(
 
 export const getSetupNeeded = createServerFn({ method: "GET" }).handler(
   async () => {
-    const { adminExists } = await import("./server");
-    return { setupNeeded: !(await adminExists()) };
+    const { adminExists, pendingAdminInvites } = await import("./server");
+    return {
+      setupNeeded: !(await adminExists()),
+      pendingInvites: await pendingAdminInvites(),
+    };
   },
 );
 
