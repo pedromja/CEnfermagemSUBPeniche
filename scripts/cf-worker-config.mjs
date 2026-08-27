@@ -41,9 +41,7 @@ writeFileSync(join(dist, ".assetsignore"), "_worker.js\ncf-assets\n");
 
 const ssrPath = join(dist, "_worker.js/_ssr/ssr.mjs");
 let ssr = readFileSync(ssrPath, "utf8");
-if (!ssr.includes("const ssr_exports")) {
-  ssr = ssr.replace("export {", "const ssr_exports = {};\nexport {");
-}
+ssr = ssr.replace("ssr_exports as p", "server_default as p");
 writeFileSync(ssrPath, ssr);
 
 const ssr2Path = join(dist, "_worker.js/_ssr/ssr2.mjs");
@@ -58,6 +56,14 @@ ssr2 = ssr2.replace(
 `,
 );
 writeFileSync(ssr2Path, ssr2);
+
+const rendererPath = join(dist, "_worker.js/_chunks/ssr-renderer.mjs");
+let renderer = readFileSync(rendererPath, "utf8");
+renderer = renderer.replace(
+  `import("../_ssr/ssr.mjs").then((n) => n.p)`,
+  `import("../_ssr/ssr.mjs")`,
+);
+writeFileSync(rendererPath, renderer);
 
 const vars = {};
 for (const key of [
