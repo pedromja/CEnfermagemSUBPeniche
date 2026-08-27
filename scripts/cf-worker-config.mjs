@@ -39,6 +39,12 @@ for (const name of readdirSync(dist)) {
 writeFileSync(join(assetsOut, ".assetsignore"), "\n");
 writeFileSync(join(dist, ".assetsignore"), "_worker.js\ncf-assets\n");
 
+const ssrPath = join(dist, "_worker.js/_ssr/ssr.mjs");
+writeFileSync(
+  ssrPath,
+  readFileSync(ssrPath, "utf8").replace(", ssr_exports as p", ""),
+);
+
 const path = join(dist, "_worker.js/wrangler.json");
 const current = JSON.parse(readFileSync(path, "utf8"));
 const next = {
