@@ -7,7 +7,7 @@ import { MiniField } from "@/components/field-row";
 import { authClient, authEnabled } from "@/lib/auth/client";
 import { getSetupNeeded, signInGuest } from "@/lib/access/functions";
 import { ADMIN_EMAIL_HINT } from "@/lib/report/paper";
-import { GUEST_PASSWORD, GUEST_USERNAME } from "@/lib/access/guest-credentials";
+import { GUEST_USERNAME } from "@/lib/access/guest-credentials";
 import { invitedAdmin } from "@/lib/access/admin-invites";
 import { cn } from "@/lib/utils";
 
@@ -24,7 +24,7 @@ function Login() {
   const [email, setEmail] = useState(ADMIN_EMAIL_HINT);
   const [password, setPassword] = useState("");
   const [guestUser, setGuestUser] = useState(GUEST_USERNAME);
-  const [guestPass, setGuestPass] = useState(GUEST_PASSWORD);
+  const [guestPass, setGuestPass] = useState("");
   const [confirm, setConfirm] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -167,7 +167,7 @@ function Login() {
               type="password"
               value={guestPass}
               onChange={(e) => setGuestPass(e.target.value)}
-              autoComplete="current-password"
+              autoComplete="off"
               required
               minLength={8}
             />

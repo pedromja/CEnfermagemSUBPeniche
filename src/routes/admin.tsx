@@ -17,7 +17,7 @@ import {
 } from "@/lib/backup/functions";
 import type { BackupMeta } from "@/lib/backup/types";
 import { ORG_SHORT, SITE_SHORT } from "@/lib/report/paper";
-import { GUEST_PASSWORD, GUEST_USERNAME } from "@/lib/access/guest-credentials";
+import { GUEST_USERNAME } from "@/lib/access/guest-credentials";
 import { formatPtDate } from "@/lib/report/model";
 import { MONTH_NAMES } from "@/lib/report/types";
 import { OrgBanner } from "@/components/org-banner";
@@ -240,18 +240,14 @@ function AdminPage() {
         <section className="rounded-xl border border-border bg-surface p-5">
           <h2 className="font-display text-lg font-semibold">Conta da equipa</h2>
           <p className="mt-1 text-sm text-muted">
-            Credenciais fixas, conhecidas de todos os enfermeiros. No telemóvel
-            só preenchem o dia de hoje ou o seguinte e só vêem os 3 dias
-            anteriores. Não abrem a Administração.
+            Utilizador comum da equipa. A palavra-passe partilha-se internamente
+            e não aparece neste ecrã. No telemóvel só preenchem o dia de hoje ou
+            o seguinte e só vêem os 3 dias anteriores. Não abrem a Administração.
           </p>
           <dl className="mt-4 grid gap-2 rounded-md bg-sunken px-3 py-3 text-sm">
             <div className="flex justify-between gap-3">
               <dt className="text-muted">Utilizador</dt>
               <dd className="font-medium tabular-nums">{GUEST_USERNAME}</dd>
-            </div>
-            <div className="flex justify-between gap-3">
-              <dt className="text-muted">Palavra-passe</dt>
-              <dd className="font-medium tabular-nums">{GUEST_PASSWORD}</dd>
             </div>
           </dl>
         </section>
